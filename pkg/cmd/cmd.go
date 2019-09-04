@@ -6,11 +6,13 @@ import (
 )
 
 type Cmd struct {
-	Scan Scan
+	Scan    Scan
+	Migrate Migrate
 }
 
 func (c *Cmd) Run(ctx context.Context, osArgs []string) int {
-	if err := c.Scan.Run(ctx, osArgs[1:]...); err != nil {
+	//TODO: add sub-commands
+	if err := c.Migrate.Run(ctx, osArgs[1:]...); err != nil {
 		log.Printf("error: %s", err)
 		return 1
 	}

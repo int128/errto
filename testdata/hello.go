@@ -1,10 +1,21 @@
 package testdata
 
 import (
-	"golang.org/x/xerrors"
+	"fmt"
+	"os"
+
+	"github.com/pkg/errors"
 )
+
+var msg = "foo"
 
 // Hello says hello world!
 func Hello() error {
-	return xerrors.New("hello world")
+	if _, err := fmt.Fprintf(os.Stderr, "hello world"); err != nil {
+		return errors.Wrapf(err, "error %s", msg)
+	}
+	if _, err := fmt.Fprintf(os.Stderr, "hello world"); err != nil {
+		return errors.Errorf("error %s", msg)
+	}
+	return nil
 }
