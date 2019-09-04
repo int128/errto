@@ -2,13 +2,12 @@ package inspector
 
 import (
 	"context"
-	"fmt"
 	"go/ast"
 	"go/printer"
-	"go/token"
 	"go/types"
 	"os"
 
+	"github.com/int128/migerr/pkg/domain/inst"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
@@ -34,15 +33,20 @@ type Inspector struct {
 	Pkgs []*packages.Package
 }
 
-func (ins *Inspector) Inspect(f func(*packages.Package, ast.Node)) {
+func (ins *Inspector) Inspect(f func(*packages.Package, *ast.File, ast.Node) error) error {
+	var lastErr error
 	for _, pkg := range ins.Pkgs {
 		for _, syntax := range pkg.Syntax {
 			ast.Inspect(syntax, func(node ast.Node) bool {
-				f(pkg, node)
+				if err := f(pkg, syntax, node); err != nil {
+					lastErr = xerrors.Errorf("inspection error: %w", err)
+					return false
+				}
 				return true
 			})
 		}
 	}
+	return lastErr
 }
 
 func (ins *Inspector) Print() error {
@@ -67,13 +71,8 @@ func (ins *Inspector) Dump() error {
 	return nil
 }
 
-type PackageFunctionCall struct {
-	PackagePath  string
-	FunctionName string
-}
-
-func (ins *Inspector) FindPackageFunctionCalls(f func(PackageFunctionCall)) {
-	ins.Inspect(func(pkg *packages.Package, node ast.Node) {
+func (ins *Inspector) MutatePackageFunctionCalls(f func(inst.PackageFunctionCallMutator) error) error {
+	if err := ins.Inspect(func(pkg *packages.Package, file *ast.File, node ast.Node) error {
 		switch node := node.(type) {
 		case *ast.CallExpr:
 			switch fun := node.Fun.(type) {
@@ -82,111 +81,57 @@ func (ins *Inspector) FindPackageFunctionCalls(f func(PackageFunctionCall)) {
 				case *ast.Ident:
 					switch o := pkg.TypesInfo.ObjectOf(x).(type) {
 					case *types.PkgName:
-						call := PackageFunctionCall{
-							//Position:     pkg.Fset.Position(fun.Pos()),
-							PackagePath:  o.Imported().Path(),
-							FunctionName: fun.Sel.Name,
-							//Args:         node.Args,
+						m := &PackageFunctionCallMutator{
+							call:    node,
+							pkgName: o,
+							f:       fun,
+							x:       x,
 						}
-						f(call)
-					}
-				}
-			}
-		}
-	})
-}
-
-//TODO
-func (ins *Inspector) MutateImport(fromPath, toPath string) {
-	ins.Inspect(func(pkg *packages.Package, node ast.Node) {
-		switch node := node.(type) {
-		case *ast.GenDecl:
-			if node.Tok.String() == "import" {
-				for _, spec := range node.Specs {
-					if imp, ok := spec.(*ast.ImportSpec); ok {
-						if imp.Path.Value == fmt.Sprintf(`"%s"`, fromPath) {
-							imp.Path.Value = fmt.Sprintf(`"%s"`, toPath)
+						if err := f(m); err != nil {
+							return xerrors.Errorf("mutation error: %w", err)
 						}
 					}
 				}
 			}
 		}
-	})
-}
-
-//TODO
-func (ins *Inspector) MutatePackageFunctionCalls(f func(PackageFunctionCallMutator)) {
-	ins.Inspect(func(pkg *packages.Package, node ast.Node) {
-		switch node := node.(type) {
-		case *ast.CallExpr:
-			switch fun := node.Fun.(type) {
-			case *ast.SelectorExpr:
-				switch x := fun.X.(type) {
-				case *ast.Ident:
-					switch o := pkg.TypesInfo.ObjectOf(x).(type) {
-					case *types.PkgName:
-						m := PackageFunctionCallMutator{
-							c: PackageFunctionCall{
-								PackagePath:  o.Imported().Path(),
-								FunctionName: fun.Sel.Name,
-							},
-							call: node,
-							x:    x,
-							sel:  fun.Sel,
-						}
-						f(m)
-					}
-				}
-			}
-		}
-	})
+		return nil
+	}); err != nil {
+		return xerrors.Errorf("error while mutation: %w", err)
+	}
+	return nil
 }
 
 type PackageFunctionCallMutator struct {
-	c    PackageFunctionCall
-	call *ast.CallExpr
-	x    *ast.Ident
-	sel  *ast.Ident
+	call    *ast.CallExpr
+	pkgName *types.PkgName
+	f       *ast.SelectorExpr
+	x       *ast.Ident
 }
 
-func (m *PackageFunctionCallMutator) Target() PackageFunctionCall {
-	return m.c
+func (m *PackageFunctionCallMutator) PackagePath() string {
+	return m.pkgName.Imported().Path()
 }
 
-func (m *PackageFunctionCallMutator) SetTarget(pkgName, functionName string) {
+func (m *PackageFunctionCallMutator) PackageName() string {
+	return m.x.Name
+}
+
+func (m *PackageFunctionCallMutator) FunctionName() string {
+	return m.f.Sel.Name
+}
+
+func (m *PackageFunctionCallMutator) Args() []ast.Expr {
+	return m.call.Args
+}
+
+func (m *PackageFunctionCallMutator) SetPackageName(pkgName string) {
 	m.x.Name = pkgName
-	m.sel.Name = functionName
 }
 
-type FunctionCallArg struct {
-	expr ast.Expr
+func (m *PackageFunctionCallMutator) SetFunctionName(name string) {
+	m.f.Sel.Name = name
 }
 
-func (a *FunctionCallArg) StringLiteral() string {
-	if l, ok := a.expr.(*ast.BasicLit); ok {
-		return l.Value
-	}
-	return ""
-}
-
-func NewFunctionCallArgStringLiteral(s string) *FunctionCallArg {
-	return &FunctionCallArg{&ast.BasicLit{
-		Kind:  token.STRING,
-		Value: s,
-	}}
-}
-
-func (m *PackageFunctionCallMutator) Args() []*FunctionCallArg {
-	args := make([]*FunctionCallArg, len(m.call.Args))
-	for i, arg := range m.call.Args {
-		args[i] = &FunctionCallArg{arg}
-	}
-	return args
-}
-
-func (m *PackageFunctionCallMutator) SetArgs(args []*FunctionCallArg) {
-	m.call.Args = make([]ast.Expr, len(args))
-	for i, arg := range args {
-		m.call.Args[i] = arg.expr
-	}
+func (m *PackageFunctionCallMutator) SetArgs(args []ast.Expr) {
+	m.call.Args = args
 }

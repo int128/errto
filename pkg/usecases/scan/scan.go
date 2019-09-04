@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/int128/migerr/pkg/adaptors/inspector"
+	"github.com/int128/migerr/pkg/domain/inst"
 	"golang.org/x/xerrors"
 )
 
@@ -21,8 +22,11 @@ func (uc *UseCase) Do(ctx context.Context, pkgNames ...string) error {
 	if err != nil {
 		return xerrors.Errorf("could not load the packages: %w", err)
 	}
-	ins.FindPackageFunctionCalls(func(call inspector.PackageFunctionCall) {
-		log.Printf("call: %+v", call)
-	})
+	if err := ins.MutatePackageFunctionCalls(func(m inst.PackageFunctionCallMutator) error {
+		log.Printf("(%s).%s", m.PackagePath(), m.FunctionName())
+		return nil
+	}); err != nil {
+		return xerrors.Errorf("could not scan the packages: %w", err)
+	}
 	return nil
 }
