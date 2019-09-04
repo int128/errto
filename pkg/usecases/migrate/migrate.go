@@ -17,6 +17,7 @@ func (uc *UseCase) Do(ctx context.Context, pkgNames ...string) error {
 	if err != nil {
 		return xerrors.Errorf("could not load the packages: %w", err)
 	}
+	ins.MutateImport("github.com/pkg/errors", "golang.org/x/xerrors")
 	ins.MutatePackageFunctionCalls(func(m inspector.PackageFunctionCallMutator) {
 		// pkg/errors.Wrapf() -> xerrors.Errorf()
 		if m.Target() == (inspector.PackageFunctionCall{PackagePath: "github.com/pkg/errors", FunctionName: "Wrapf"}) {

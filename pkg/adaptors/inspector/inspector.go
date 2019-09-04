@@ -2,6 +2,7 @@ package inspector
 
 import (
 	"context"
+	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -88,6 +89,24 @@ func (ins *Inspector) FindPackageFunctionCalls(f func(PackageFunctionCall)) {
 							//Args:         node.Args,
 						}
 						f(call)
+					}
+				}
+			}
+		}
+	})
+}
+
+//TODO
+func (ins *Inspector) MutateImport(fromPath, toPath string) {
+	ins.Inspect(func(pkg *packages.Package, node ast.Node) {
+		switch node := node.(type) {
+		case *ast.GenDecl:
+			if node.Tok.String() == "import" {
+				for _, spec := range node.Specs {
+					if imp, ok := spec.(*ast.ImportSpec); ok {
+						if imp.Path.Value == fmt.Sprintf(`"%s"`, fromPath) {
+							imp.Path.Value = fmt.Sprintf(`"%s"`, toPath)
+						}
 					}
 				}
 			}
