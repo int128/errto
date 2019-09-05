@@ -2,19 +2,21 @@ package inspector
 
 import (
 	"context"
+	"fmt"
 	"go/ast"
 	"go/printer"
+	"go/token"
 	"go/types"
 	"os"
+	"strings"
 
-	"github.com/int128/migerr/pkg/domain/inst"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
 
-type Loader struct{}
+type Inspector struct{}
 
-func (*Loader) Load(ctx context.Context, pkgNames ...string) (*Inspector, error) {
+func (*Inspector) Load(ctx context.Context, pkgNames ...string) ([]*packages.Package, error) {
 	cfg := &packages.Config{
 		Context: ctx,
 		Mode:    packages.NeedCompiledGoFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo,
@@ -26,54 +28,52 @@ func (*Loader) Load(ctx context.Context, pkgNames ...string) (*Inspector, error)
 	if packages.PrintErrors(pkgs) > 0 {
 		return nil, xerrors.New("error while loading the packages")
 	}
-	return &Inspector{Pkgs: pkgs}, nil
+	return pkgs, nil
 }
 
-type Inspector struct {
-	Pkgs []*packages.Package
+func (ins *Inspector) Print(pkg *packages.Package, file *ast.File) error {
+	if err := printer.Fprint(os.Stdout, pkg.Fset, file); err != nil {
+		return xerrors.Errorf("could not print the file: %w", err)
+	}
+	return nil
 }
 
-func (ins *Inspector) Inspect(f func(*packages.Package, *ast.File, ast.Node) error) error {
+func (ins *Inspector) Dump(pkg *packages.Package, file *ast.File) error {
+	if err := ast.Print(pkg.Fset, file); err != nil {
+		return xerrors.Errorf("could not dump the file: %w", err)
+	}
+	return nil
+}
+
+type Visitor interface {
+	Import(Import) error
+	PackageFunctionCall(PackageFunctionCall) error
+}
+
+func (ins *Inspector) Inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
 	var lastErr error
-	for _, pkg := range ins.Pkgs {
-		for _, syntax := range pkg.Syntax {
-			ast.Inspect(syntax, func(node ast.Node) bool {
-				if err := f(pkg, syntax, node); err != nil {
-					lastErr = xerrors.Errorf("inspection error: %w", err)
-					return false
-				}
-				return true
-			})
-		}
-	}
-	return lastErr
-}
-
-func (ins *Inspector) Print() error {
-	for _, pkg := range ins.Pkgs {
-		for _, syntax := range pkg.Syntax {
-			if err := printer.Fprint(os.Stdout, pkg.Fset, syntax); err != nil {
-				return xerrors.Errorf("could not print %s: %w", pkg, err)
-			}
-		}
-	}
-	return nil
-}
-
-func (ins *Inspector) Dump() error {
-	for _, pkg := range ins.Pkgs {
-		for _, syntax := range pkg.Syntax {
-			if err := ast.Print(pkg.Fset, syntax); err != nil {
-				return xerrors.Errorf("could not dump %s: %w", pkg, err)
-			}
-		}
-	}
-	return nil
-}
-
-func (ins *Inspector) MutatePackageFunctionCalls(f func(inst.PackageFunctionCallMutator) error) error {
-	if err := ins.Inspect(func(pkg *packages.Package, file *ast.File, node ast.Node) error {
+	ast.Inspect(file, func(node ast.Node) bool {
 		switch node := node.(type) {
+		case *ast.GenDecl:
+			switch node.Tok {
+			case token.IMPORT:
+				for _, spec := range node.Specs {
+					switch spec := spec.(type) {
+					case *ast.ImportSpec:
+						imp := Import{
+							position: pkg.Fset.Position(spec.Pos()),
+							spec:     spec,
+						}
+						if err := v.Import(imp); err != nil {
+							lastErr = err
+							return false
+						}
+					default:
+						lastErr = xerrors.Errorf("spec wants *ast.ImportSpec but was %T", spec)
+						return false
+					}
+				}
+			}
 		case *ast.CallExpr:
 			switch fun := node.Fun.(type) {
 			case *ast.SelectorExpr:
@@ -81,57 +81,85 @@ func (ins *Inspector) MutatePackageFunctionCalls(f func(inst.PackageFunctionCall
 				case *ast.Ident:
 					switch o := pkg.TypesInfo.ObjectOf(x).(type) {
 					case *types.PkgName:
-						m := &PackageFunctionCallMutator{
-							call:    node,
-							pkgName: o,
-							f:       fun,
-							x:       x,
+						c := PackageFunctionCall{
+							pkgPath:  o.Imported().Path(),
+							position: pkg.Fset.Position(node.Pos()),
+							call:     node,
+							f:        fun,
+							x:        x,
 						}
-						if err := f(m); err != nil {
-							return xerrors.Errorf("mutation error: %w", err)
+						if err := v.PackageFunctionCall(c); err != nil {
+							lastErr = err
+							return false
 						}
 					}
 				}
 			}
 		}
-		return nil
-	}); err != nil {
-		return xerrors.Errorf("error while mutation: %w", err)
+		return true
+	})
+	return lastErr
+}
+
+type Import struct {
+	position token.Position
+	spec     *ast.ImportSpec
+}
+
+func (imp *Import) PackagePath() string {
+	return strings.Trim(imp.spec.Path.Value, `"`)
+}
+
+func (imp *Import) SetPackagePath(path string, name string) {
+	imp.spec.Path.Value = fmt.Sprintf(`"%s"`, path)
+	if name != "" {
+		imp.spec.Name = &ast.Ident{Name: name}
+	} else {
+		imp.spec.Name = nil
 	}
-	return nil
 }
 
-type PackageFunctionCallMutator struct {
-	call    *ast.CallExpr
-	pkgName *types.PkgName
-	f       *ast.SelectorExpr
-	x       *ast.Ident
+func (imp *Import) Position() token.Position {
+	return imp.position
 }
 
-func (m *PackageFunctionCallMutator) PackagePath() string {
-	return m.pkgName.Imported().Path()
+type PackageFunctionCall struct {
+	pkgPath  string
+	position token.Position
+
+	call *ast.CallExpr
+	f    *ast.SelectorExpr
+	x    *ast.Ident
 }
 
-func (m *PackageFunctionCallMutator) PackageName() string {
-	return m.x.Name
+func (c *PackageFunctionCall) PackagePath() string {
+	return c.pkgPath
 }
 
-func (m *PackageFunctionCallMutator) FunctionName() string {
-	return m.f.Sel.Name
+func (c *PackageFunctionCall) PackageName() string {
+	return c.x.Name
 }
 
-func (m *PackageFunctionCallMutator) Args() []ast.Expr {
-	return m.call.Args
+func (c *PackageFunctionCall) FunctionName() string {
+	return c.f.Sel.Name
 }
 
-func (m *PackageFunctionCallMutator) SetPackageName(pkgName string) {
-	m.x.Name = pkgName
+func (c *PackageFunctionCall) Args() []ast.Expr {
+	return c.call.Args
 }
 
-func (m *PackageFunctionCallMutator) SetFunctionName(name string) {
-	m.f.Sel.Name = name
+func (c *PackageFunctionCall) Position() token.Position {
+	return c.position
 }
 
-func (m *PackageFunctionCallMutator) SetArgs(args []ast.Expr) {
-	m.call.Args = args
+func (c *PackageFunctionCall) SetPackageName(pkgName string) {
+	c.x.Name = pkgName
+}
+
+func (c *PackageFunctionCall) SetFunctionName(name string) {
+	c.f.Sel.Name = name
+}
+
+func (c *PackageFunctionCall) SetArgs(args []ast.Expr) {
+	c.call.Args = args
 }
