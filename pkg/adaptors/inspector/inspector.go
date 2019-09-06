@@ -32,11 +32,8 @@ func (*Inspector) Load(ctx context.Context, pkgNames ...string) ([]*packages.Pac
 }
 
 func (ins *Inspector) Filename(pkg *packages.Package, file *ast.File) string {
-	f := pkg.Fset.File(file.Pos())
-	if f == nil {
-		return ""
-	}
-	return f.Name()
+	p := relativePosition(pkg.Fset.Position(file.Pos()))
+	return p.Filename
 }
 
 func (ins *Inspector) Print(pkg *packages.Package, file *ast.File) error {
@@ -85,7 +82,7 @@ func (ins *Inspector) Inspect(pkg *packages.Package, file *ast.File, v Visitor) 
 					switch spec := spec.(type) {
 					case *ast.ImportSpec:
 						imp := Import{
-							position: pkg.Fset.Position(spec.Pos()),
+							position: relativePosition(pkg.Fset.Position(spec.Pos())),
 							spec:     spec,
 						}
 						if err := v.Import(imp); err != nil {
@@ -107,7 +104,7 @@ func (ins *Inspector) Inspect(pkg *packages.Package, file *ast.File, v Visitor) 
 					case *types.PkgName:
 						c := PackageFunctionCall{
 							pkgPath:  o.Imported().Path(),
-							position: pkg.Fset.Position(node.Pos()),
+							position: relativePosition(pkg.Fset.Position(node.Pos())),
 							call:     node,
 							f:        fun,
 							x:        x,
@@ -186,4 +183,13 @@ func (c *PackageFunctionCall) SetFunctionName(name string) {
 
 func (c *PackageFunctionCall) SetArgs(args []ast.Expr) {
 	c.call.Args = args
+}
+
+func relativePosition(p token.Position) token.Position {
+	wd, _ := os.Getwd()
+	if wd != "" {
+		wd += "/"
+	}
+	p.Filename = strings.TrimPrefix(p.Filename, wd)
+	return p
 }

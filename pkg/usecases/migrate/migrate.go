@@ -41,11 +41,7 @@ func (uc *UseCase) Do(ctx context.Context, cfg Config) error {
 				continue
 			}
 			log.Printf("%s: total %d change(s)", filename, v.changes)
-			if cfg.DryRun {
-				if err := uc.Inspector.Print(pkg, file); err != nil {
-					return xerrors.Errorf("could not print the file: %w", err)
-				}
-			} else {
+			if !cfg.DryRun {
 				if err := uc.Inspector.Write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}
@@ -113,7 +109,7 @@ func (v *pkgErrorsToXerrorsMigration) PackageFunctionCall(c inspector.PackageFun
 		return nil
 
 	default:
-		log.Printf("%s: you need to manually migrate the function call", c.Position())
+		log.Printf("%s: NOTE: you need to manually migrate errors.%s()", c.Position(), c.FunctionName())
 		return nil
 	}
 }
