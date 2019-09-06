@@ -1,4 +1,4 @@
-# migerr
+# migerr [![CircleCI](https://circleci.com/gh/int128/migerr.svg?style=shield)](https://circleci.com/gh/int128/migerr)
 
 This is a command line tool to migrate error handling in Go files.
 
