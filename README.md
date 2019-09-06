@@ -1,6 +1,6 @@
 # migerr
 
-This is a tiny tool to migrate error handling in Go.
+This is a command line tool to migrate error handling in Go files.
 
 **Status**: Alpha, proof of concept.
 
@@ -18,8 +18,26 @@ testdata/hello.go: total 3 change(s)
 
 ## Migration rules
 
-Currently the following migrations are supported.
+Currently the following migration rules are supported.
 
-- `github.com/pkg/errors.Errorf` to `xerrors.Errorf`
-- `github.com/pkg/errors.New` to `xerrors.New`
-- `github.com/pkg/errors.Wrapf` to `xerrors.Errorf`
+- `github.com/pkg/errors` to `xerrors`
+  - `errors.Errorf` to `xerrors.Errorf`
+  - `errors.New` to `xerrors.New`
+  - `errors.Wrapf` to `xerrors.Errorf`
+
+### `github.com/pkg/errors` to `xerrors`
+
+This rule set performs the following migration:
+
+| From | To |
+|------|----|
+| `import "github.com/pkg/errors"` | `import "golang.org/x/xerrors"` |
+| `errors.Errorf("message %s", msg)` | `xerrors.Errorf("message %s", msg)` |
+| `errors.New("message")` | `xerrors.New("message")` |
+| `errors.Wrapf(err, "message %s", msg)` | `xerrors.Errorf("message %s: %w", msg, err)` |
+
+
+## Contributions
+
+This is an open source software.
+Feel free to open issues and pull requests.
