@@ -101,10 +101,9 @@ func (v *pkgErrorsToXerrorsMigration) PackageFunctionCall(c inspector.PackageFun
 		v.changes++
 		return nil
 
-	case "Errorf":
-		log.Printf("%s: rewriting the function call with xerrors.Errorf()", c.Position())
+	case "Errorf", "New":
+		log.Printf("%s: rewriting the function call with xerrors.%s()", c.Position(), c.FunctionName())
 		c.SetPackageName("xerrors")
-		c.SetFunctionName("Errorf")
 		v.changes++
 		return nil
 
