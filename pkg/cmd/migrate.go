@@ -13,15 +13,23 @@ type Migrate struct {
 }
 
 func (m *Migrate) New(ctx context.Context) *cobra.Command {
+	var o struct {
+		dryRun bool
+	}
 	c := &cobra.Command{
 		Use:   "migrate PACKAGE...",
 		Short: "Migrate error handling",
 		RunE: func(_ *cobra.Command, args []string) error {
-			if err := m.UseCase.Do(ctx, args...); err != nil {
+			cfg := migrate.Config{
+				PkgNames: args,
+				DryRun:   o.dryRun,
+			}
+			if err := m.UseCase.Do(ctx, cfg); err != nil {
 				return xerrors.Errorf("could not migrate the packages: %w", err)
 			}
 			return nil
 		},
 	}
+	c.Flags().BoolVar(&o.dryRun, "dry-run", false, "Do not write files actually")
 	return c
 }

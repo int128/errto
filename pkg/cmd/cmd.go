@@ -8,7 +8,6 @@ import (
 )
 
 type Cmd struct {
-	Scan    Scan
 	Migrate Migrate
 	Dump    Dump
 }
@@ -21,7 +20,6 @@ func (c *Cmd) Run(ctx context.Context, osArgs []string) int {
 	root.SilenceUsage = true
 
 	root.AddCommand(
-		c.Scan.New(ctx),
 		c.Migrate.New(ctx),
 		c.Dump.New(ctx),
 	)
