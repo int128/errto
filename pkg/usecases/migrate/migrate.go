@@ -25,7 +25,7 @@ func (uc *UseCase) Do(ctx context.Context, pkgNames ...string) error {
 			if err := uc.Inspector.Inspect(pkg, file, &visitor{}); err != nil {
 				return xerrors.Errorf("could not migrate the file: %w", err)
 			}
-			if err := uc.Inspector.Print(pkg, file); err != nil {
+			if err := uc.Inspector.Write(pkg, file); err != nil {
 				return xerrors.Errorf("could not write the file: %w", err)
 			}
 		}

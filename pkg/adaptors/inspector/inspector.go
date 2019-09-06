@@ -31,16 +31,40 @@ func (*Inspector) Load(ctx context.Context, pkgNames ...string) ([]*packages.Pac
 	return pkgs, nil
 }
 
+func (ins *Inspector) Filename(pkg *packages.Package, file *ast.File) string {
+	f := pkg.Fset.File(file.Pos())
+	if f == nil {
+		return ""
+	}
+	return f.Name()
+}
+
 func (ins *Inspector) Print(pkg *packages.Package, file *ast.File) error {
 	if err := printer.Fprint(os.Stdout, pkg.Fset, file); err != nil {
-		return xerrors.Errorf("could not print the file: %w", err)
+		return xerrors.Errorf("error while printing file %s: %w", ins.Filename(pkg, file), err)
+	}
+	return nil
+}
+
+func (ins *Inspector) Write(pkg *packages.Package, file *ast.File) error {
+	filename := ins.Filename(pkg, file)
+	if filename == "" {
+		return xerrors.Errorf("could not determine filename of file %s", file)
+	}
+	f, err := os.Create(filename)
+	if err != nil {
+		return xerrors.Errorf("could not open file %s: %w", filename, err)
+	}
+	defer f.Close()
+	if err := printer.Fprint(f, pkg.Fset, file); err != nil {
+		return xerrors.Errorf("could not write to file %s: %w", ins.Filename(pkg, file), err)
 	}
 	return nil
 }
 
 func (ins *Inspector) Dump(pkg *packages.Package, file *ast.File) error {
 	if err := ast.Print(pkg.Fset, file); err != nil {
-		return xerrors.Errorf("could not dump the file: %w", err)
+		return xerrors.Errorf("could not dump file %s: %w", ins.Filename(pkg, file), err)
 	}
 	return nil
 }
