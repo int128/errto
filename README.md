@@ -16,7 +16,7 @@ go get github.com/int128/transerr
 Run the transerr.
 
 ```
-% transerr migrate ./testdata
+% transerr transform ./testdata
 testdata/hello.go:4:2: rewriting the import with golang.org/x/xerrors
 testdata/hello.go:11:9: rewriting the function call with xerrors.New()
 testdata/hello.go:12:6: rewriting the function call with xerrors.Errorf()

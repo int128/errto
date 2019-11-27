@@ -8,8 +8,8 @@ import (
 )
 
 type Cmd struct {
-	Migrate Migrate
-	Dump    Dump
+	Transform Transform
+	Dump      Dump
 }
 
 func (c *Cmd) Run(ctx context.Context, osArgs []string) int {
@@ -20,7 +20,7 @@ func (c *Cmd) Run(ctx context.Context, osArgs []string) int {
 	root.SilenceUsage = true
 
 	root.AddCommand(
-		c.Migrate.New(ctx),
+		c.Transform.New(ctx),
 		c.Dump.New(ctx),
 	)
 

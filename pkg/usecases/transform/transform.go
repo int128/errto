@@ -1,4 +1,4 @@
-package migrate
+package transform
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func (uc *UseCase) Do(ctx context.Context, cfg Config) error {
 			filename := uc.Inspector.Filename(pkg, file)
 			v := &pkgErrorsToXerrorsMigration{}
 			if err := uc.Inspector.Inspect(pkg, file, v); err != nil {
-				return xerrors.Errorf("could not migrate the file: %w", err)
+				return xerrors.Errorf("could not transform the file: %w", err)
 			}
 			if v.changes == 0 {
 				continue
@@ -108,7 +108,7 @@ func (v *pkgErrorsToXerrorsMigration) PackageFunctionCall(c inspector.PackageFun
 		return nil
 
 	default:
-		log.Printf("%s: NOTE: you need to manually migrate errors.%s()", c.Position(), c.FunctionName())
+		log.Printf("%s: NOTE: you need to manually rewrite errors.%s()", c.Position(), c.FunctionName())
 		return nil
 	}
 }
