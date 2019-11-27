@@ -1,4 +1,4 @@
-# migerr [![CircleCI](https://circleci.com/gh/int128/migerr.svg?style=shield)](https://circleci.com/gh/int128/migerr)
+# transerr [![CircleCI](https://circleci.com/gh/int128/transerr.svg?style=shield)](https://circleci.com/gh/int128/transerr)
 
 This is a command line tool to migrate error handling in Go files, such as `errors`, `xerrors` and `github.com/pkg/errors`.
 
@@ -10,13 +10,13 @@ This is a command line tool to migrate error handling in Go files, such as `erro
 Install:
 
 ```sh
-go get github.com/int128/migerr
+go get github.com/int128/transerr
 ```
 
 Run:
 
 ```
-% migerr migrate ./testdata
+% transerr migrate ./testdata
 testdata/hello.go:4:2: rewriting the import with golang.org/x/xerrors
 testdata/hello.go:11:9: rewriting the function call with xerrors.New()
 testdata/hello.go:12:6: rewriting the function call with xerrors.Errorf()

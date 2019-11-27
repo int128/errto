@@ -14,7 +14,7 @@ type Cmd struct {
 
 func (c *Cmd) Run(ctx context.Context, osArgs []string) int {
 	root := &cobra.Command{
-		Use: "migerr",
+		Use: "transerr",
 	}
 	root.SilenceErrors = true
 	root.SilenceUsage = true

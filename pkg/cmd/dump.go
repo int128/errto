@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 
-	"github.com/int128/migerr/pkg/usecases/dump"
+	"github.com/int128/transerr/pkg/usecases/dump"
 	"github.com/spf13/cobra"
 	"golang.org/x/xerrors"
 )

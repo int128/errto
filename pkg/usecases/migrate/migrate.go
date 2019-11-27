@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/int128/migerr/pkg/adaptors/inspector"
+	"github.com/int128/transerr/pkg/adaptors/inspector"
 	"golang.org/x/xerrors"
 )
 

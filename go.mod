@@ -1,4 +1,4 @@
-module github.com/int128/migerr
+module github.com/int128/transerr
 
 go 1.12
 
