@@ -1,19 +1,19 @@
 # transerr [![CircleCI](https://circleci.com/gh/int128/transerr.svg?style=shield)](https://circleci.com/gh/int128/transerr)
 
-This is a command line tool to migrate error handling in Go files, such as `errors`, `xerrors` and `github.com/pkg/errors`.
+This is a command line tool to transform Go error handling between `errors`, `xerrors` and `github.com/pkg/errors`.
 
 **Status**: Proof of Concept.
 
 
 ## Getting Started
 
-Install:
+Install the latest release.
 
 ```sh
 go get github.com/int128/transerr
 ```
 
-Run:
+Run the transerr.
 
 ```
 % transerr migrate ./testdata
@@ -24,7 +24,7 @@ testdata/hello.go:13:6: rewriting the function call with xerrors.Errorf()
 testdata/hello.go: total 4 change(s)
 ```
 
-You can see the following changes:
+You can see the following changes.
 
 ```patch
 index eb32e7e..5ed2504 100644
@@ -53,9 +53,9 @@ index eb32e7e..5ed2504 100644
 ```
 
 
-## Migration rules
+## Transformation rules
 
-Currently the following migration rules are supported.
+Currently the following rules are supported.
 
 - `github.com/pkg/errors` to `golang.org/x/xerrors`
   - `errors.Errorf` to `xerrors.Errorf`
@@ -63,8 +63,6 @@ Currently the following migration rules are supported.
   - `errors.Wrapf` to `xerrors.Errorf`
 
 ### 1. `github.com/pkg/errors` to `golang.org/x/xerrors`
-
-This rule set performs the following migration:
 
 | From | To |
 |------|----|
