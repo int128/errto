@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/int128/transerr/pkg/cmd"
+	"github.com/int128/transerr/pkg/di"
 )
 
 func init() {
@@ -13,7 +13,5 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
-	var c cmd.Cmd
-	os.Exit(c.Run(ctx, os.Args))
+	os.Exit(di.NewCmd().Run(context.Background(), os.Args))
 }
