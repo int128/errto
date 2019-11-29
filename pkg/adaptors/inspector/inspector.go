@@ -10,9 +10,24 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/wire"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
+
+var Set = wire.NewSet(
+	wire.Bind(new(Interface), new(*Inspector)),
+	wire.Struct(new(Inspector)),
+)
+
+type Interface interface {
+	Load(ctx context.Context, pkgNames ...string) ([]*packages.Package, error)
+	Filename(pkg *packages.Package, file *ast.File) string
+	Print(pkg *packages.Package, file *ast.File) error
+	Write(pkg *packages.Package, file *ast.File) error
+	Dump(pkg *packages.Package, file *ast.File) error
+	Inspect(pkg *packages.Package, file *ast.File, v Visitor) error
+}
 
 type Inspector struct{}
 

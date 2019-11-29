@@ -3,8 +3,14 @@ package dump
 import (
 	"context"
 
+	"github.com/google/wire"
 	"github.com/int128/transerr/pkg/adaptors/inspector"
 	"golang.org/x/xerrors"
+)
+
+var Set = wire.NewSet(
+	wire.Bind(new(Interface), new(*UseCase)),
+	wire.Struct(new(UseCase), "*"),
 )
 
 type Interface interface {
@@ -12,7 +18,7 @@ type Interface interface {
 }
 
 type UseCase struct {
-	Inspector inspector.Inspector
+	Inspector inspector.Interface
 }
 
 func (uc *UseCase) Do(ctx context.Context, pkgNames ...string) error {

@@ -4,8 +4,20 @@ import (
 	"context"
 	"log"
 
+	"github.com/google/wire"
 	"github.com/spf13/cobra"
 )
+
+var Set = wire.NewSet(
+	wire.Bind(new(Interface), new(*Cmd)),
+	wire.Struct(new(Cmd), "*"),
+	wire.Struct(new(Transform), "*"),
+	wire.Struct(new(Dump), "*"),
+)
+
+type Interface interface {
+	Run(ctx context.Context, osArgs []string) int
+}
 
 type Cmd struct {
 	Transform Transform
