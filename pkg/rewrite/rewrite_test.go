@@ -1,4 +1,4 @@
-package transform_test
+package rewrite_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/int128/transerr/pkg/log"
-	"github.com/int128/transerr/pkg/transform"
+	"github.com/int128/transerr/pkg/rewrite"
 )
 
 func TestDo(t *testing.T) {
@@ -49,7 +49,7 @@ func testRewrite(t *testing.T, ctx context.Context, fixtureFilename, wantFilenam
 		t.Fatalf("could not copy the fixture: %s", err)
 	}
 
-	if err := transform.Do(ctx, transform.Input{PkgNames: []string{"./" + tempDir}}); err != nil {
+	if err := rewrite.Do(ctx, rewrite.Input{PkgNames: []string{"./" + tempDir}}); err != nil {
 		t.Errorf("error: %+v", err)
 	}
 

@@ -13,7 +13,7 @@ func Run(ctx context.Context, osArgs []string) int {
 	}
 
 	root.AddCommand(
-		newTransformCmd(),
+		newRewriteCmd(),
 		newDumpCmd(),
 	)
 

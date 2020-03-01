@@ -1,6 +1,6 @@
 # transerr [![CircleCI](https://circleci.com/gh/int128/transerr.svg?style=shield)](https://circleci.com/gh/int128/transerr)
 
-This is a command line tool to transform Go error handling between `errors`, `xerrors` and `github.com/pkg/errors`.
+This is a command to rewrite Go error handling code between `errors`, `xerrors` and `github.com/pkg/errors`.
 
 **Status**: Proof of Concept.
 
@@ -13,10 +13,10 @@ Install the latest release.
 go get github.com/int128/transerr
 ```
 
-Run the transerr.
+Run.
 
 ```
-% transerr transform ./testdata
+% transerr rewrite ./testdata
 testdata/hello.go:4:2: rewriting the import with golang.org/x/xerrors
 testdata/hello.go:11:9: rewriting the function call with xerrors.New()
 testdata/hello.go:12:6: rewriting the function call with xerrors.Errorf()
@@ -53,7 +53,7 @@ index eb32e7e..5ed2504 100644
 ```
 
 
-## Transformation rules
+## Rewrite rules
 
 Currently the following rules are supported.
 
