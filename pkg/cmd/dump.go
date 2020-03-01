@@ -1,23 +1,17 @@
 package cmd
 
 import (
-	"context"
-
 	"github.com/int128/transerr/pkg/usecases/dump"
 	"github.com/spf13/cobra"
 	"golang.org/x/xerrors"
 )
 
-type Dump struct {
-	UseCase dump.UseCase
-}
-
-func (d *Dump) New(ctx context.Context) *cobra.Command {
+func newDumpCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "dump PACKAGE...",
 		Short: "Dump AST of packages",
-		RunE: func(_ *cobra.Command, args []string) error {
-			if err := d.UseCase.Do(ctx, args...); err != nil {
+		RunE: func(c *cobra.Command, args []string) error {
+			if err := dump.Do(c.Context(), args...); err != nil {
 				return xerrors.Errorf("could not dump the packages: %w", err)
 			}
 			return nil

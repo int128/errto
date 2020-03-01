@@ -4,51 +4,47 @@ import (
 	"context"
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
+	"go/types"
 	"log"
+	"os"
 	"strings"
 
-	"github.com/google/wire"
-	"github.com/int128/transerr/pkg/adaptors/inspector"
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
 
-var Set = wire.NewSet(
-	wire.Bind(new(Interface), new(*UseCase)),
-	wire.Struct(new(UseCase), "*"),
-)
-
-type Interface interface {
-	Do(ctx context.Context, cfg Config) error
-}
-
-type Config struct {
+type Input struct {
 	PkgNames []string
 	DryRun   bool
 }
 
-type UseCase struct {
-	Inspector inspector.Interface
-}
-
-func (uc *UseCase) Do(ctx context.Context, cfg Config) error {
-	pkgs, err := uc.Inspector.Load(ctx, cfg.PkgNames...)
+func Do(ctx context.Context, in Input) error {
+	cfg := &packages.Config{
+		Context: ctx,
+		Mode:    packages.NeedCompiledGoFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo,
+	}
+	pkgs, err := packages.Load(cfg, in.PkgNames...)
 	if err != nil {
 		return xerrors.Errorf("could not load the packages: %w", err)
 	}
+	if n := packages.PrintErrors(pkgs); n > 0 {
+		return xerrors.Errorf("could not load the packages with %d errors", n)
+	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
-			filename := uc.Inspector.Filename(pkg, file)
-			v := &pkgErrorsToXerrorsMigration{}
-			if err := uc.Inspector.Inspect(pkg, file, v); err != nil {
-				return xerrors.Errorf("could not transform the file: %w", err)
+			p := position(pkg, file)
+			v := &pkgErrorsToXerrorsVisitor{}
+			if err := inspect(pkg, file, v); err != nil {
+				return xerrors.Errorf("could not inspect the file: %w", err)
 			}
 			if v.changes == 0 {
 				continue
 			}
-			log.Printf("%s: total %d change(s)", filename, v.changes)
-			if !cfg.DryRun {
-				if err := uc.Inspector.Write(pkg, file); err != nil {
+			log.Printf("%s: total %d change(s)", p.Filename, v.changes)
+			if !in.DryRun {
+				if err := write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}
 			}
@@ -57,45 +53,125 @@ func (uc *UseCase) Do(ctx context.Context, cfg Config) error {
 	return nil
 }
 
+func write(pkg *packages.Package, file *ast.File) error {
+	p := position(pkg, file)
+	if p.Filename == "" {
+		return xerrors.Errorf("could not determine filename of file %s", file)
+	}
+	f, err := os.Create(p.Filename)
+	if err != nil {
+		return xerrors.Errorf("could not open file %s: %w", p.Filename, err)
+	}
+	defer f.Close()
+	if err := printer.Fprint(f, pkg.Fset, file); err != nil {
+		return xerrors.Errorf("could not write to file %s: %w", p.Filename, err)
+	}
+	return nil
+}
+
+func position(pkg *packages.Package, node ast.Node) token.Position {
+	p := pkg.Fset.Position(node.Pos())
+	p.Filename = relative(p.Filename)
+	return p
+}
+
+func relative(name string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return name
+	}
+	return strings.TrimPrefix(name, wd+"/")
+}
+
+type Visitor interface {
+	Import(p token.Position, spec *ast.ImportSpec) error
+	PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, pkgName *types.PkgName, fun *ast.SelectorExpr) error
+}
+
+func inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
+	var lastErr error
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch node := node.(type) {
+		case *ast.GenDecl:
+			p := position(pkg, node)
+			switch node.Tok {
+			case token.IMPORT:
+				for _, spec := range node.Specs {
+					switch spec := spec.(type) {
+					case *ast.ImportSpec:
+						if err := v.Import(p, spec); err != nil {
+							lastErr = err
+							return false
+						}
+					default:
+						lastErr = xerrors.Errorf("spec wants *ast.ImportSpec but was %T", spec)
+						return false
+					}
+				}
+			}
+		case *ast.CallExpr:
+			p := position(pkg, node)
+			switch fun := node.Fun.(type) {
+			case *ast.SelectorExpr:
+				switch x := fun.X.(type) {
+				case *ast.Ident:
+					switch o := pkg.TypesInfo.ObjectOf(x).(type) {
+					case *types.PkgName:
+						if err := v.PackageFunctionCall(p, node, x, o, fun); err != nil {
+							lastErr = err
+							return false
+						}
+					}
+				}
+			}
+		}
+		return true
+	})
+	return lastErr
+}
+
 const (
 	pkgErrorsPkgPath = "github.com/pkg/errors"
 	xerrorsPkgPath   = "golang.org/x/xerrors"
 )
 
-type pkgErrorsToXerrorsMigration struct {
+type pkgErrorsToXerrorsVisitor struct {
 	changes int
 }
 
-func (v *pkgErrorsToXerrorsMigration) Import(imp inspector.Import) error {
-	if imp.PackagePath() != pkgErrorsPkgPath {
+func (v *pkgErrorsToXerrorsVisitor) Import(p token.Position, spec *ast.ImportSpec) error {
+	name := strings.Trim(spec.Path.Value, `"`)
+	if name != pkgErrorsPkgPath {
 		return nil
 	}
-	log.Printf("%s: rewriting the import with %s", imp.Position(), xerrorsPkgPath)
-	imp.SetPackagePath(xerrorsPkgPath, "")
+	log.Printf("%s: rewriting the import with %s", p, xerrorsPkgPath)
+	spec.Path.Value = fmt.Sprintf(`"%s"`, xerrorsPkgPath)
 	v.changes++
 	return nil
 }
 
-func (v *pkgErrorsToXerrorsMigration) PackageFunctionCall(c inspector.PackageFunctionCall) error {
-	if c.PackagePath() != pkgErrorsPkgPath {
+func (v *pkgErrorsToXerrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, pkgName *types.PkgName, fun *ast.SelectorExpr) error {
+	packagePath := pkgName.Imported().Path()
+	if packagePath != pkgErrorsPkgPath {
 		return nil
 	}
 
-	switch c.FunctionName() {
+	functionName := fun.Sel.Name
+	switch functionName {
 	case "Wrapf":
-		log.Printf("%s: rewriting the function call with xerrors.Errorf()", c.Position())
-		c.SetPackageName("xerrors")
-		c.SetFunctionName("Errorf")
+		log.Printf("%s: rewriting the function call with xerrors.Errorf()", p)
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Errorf"
 
 		// reorder the args
-		a := c.Args()
+		a := call.Args
 		args := make([]ast.Expr, 0)
 		args = append(args, a[1])
 		args = append(args, a[2:]...)
 		args = append(args, a[0])
-		c.SetArgs(args)
+		call.Args = a
 
-		// append %w to the format
+		// append %w to the format arg
 		b, ok := a[1].(*ast.BasicLit)
 		if !ok {
 			return xerrors.Errorf("2nd argument of Wrapf must be a literal but %T", a[1])
@@ -108,13 +184,13 @@ func (v *pkgErrorsToXerrorsMigration) PackageFunctionCall(c inspector.PackageFun
 		return nil
 
 	case "Errorf", "New":
-		log.Printf("%s: rewriting the function call with xerrors.%s()", c.Position(), c.FunctionName())
-		c.SetPackageName("xerrors")
+		log.Printf("%s: rewriting the function call with xerrors.%s()", p, functionName)
+		pkg.Name = "xerrors"
 		v.changes++
 		return nil
 
 	default:
-		log.Printf("%s: NOTE: you need to manually rewrite errors.%s()", c.Position(), c.FunctionName())
+		log.Printf("%s: NOTE: you need to manually rewrite errors.%s()", p, functionName)
 		return nil
 	}
 }
