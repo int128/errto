@@ -6,10 +6,10 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"strings"
 
 	"github.com/int128/transerr/pkg/astio"
+	"github.com/int128/transerr/pkg/log"
 	"golang.org/x/xerrors"
 )
 
@@ -23,6 +23,9 @@ func Do(ctx context.Context, in Input) error {
 	if err != nil {
 		return xerrors.Errorf("could not load the packages: %w", err)
 	}
+	if len(pkgs) == 0 {
+		return xerrors.New("no package found")
+	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
 			p := astio.Position(pkg, file)
@@ -33,8 +36,8 @@ func Do(ctx context.Context, in Input) error {
 			if v.changes == 0 {
 				continue
 			}
-			log.Printf("%s: total %d change(s)", p.Filename, v.changes)
 			if !in.DryRun {
+				log.Printf("%s: writing %d change(s)", p.Filename, v.changes)
 				if err := astio.Write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}
@@ -83,7 +86,7 @@ func (v *pkgErrorsToXerrorsVisitor) PackageFunctionCall(p token.Position, call *
 		args = append(args, a[1])
 		args = append(args, a[2:]...)
 		args = append(args, a[0])
-		call.Args = a
+		call.Args = args
 
 		// append %w to the format arg
 		b, ok := a[1].(*ast.BasicLit)
@@ -100,6 +103,13 @@ func (v *pkgErrorsToXerrorsVisitor) PackageFunctionCall(p token.Position, call *
 	case "Errorf", "New":
 		log.Printf("%s: rewriting the function call with xerrors.%s()", p, functionName)
 		pkg.Name = "xerrors"
+		v.changes++
+		return nil
+
+	case "Cause":
+		log.Printf("%s: rewriting the function call with xerrors.%s()", p, functionName)
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Unwrap"
 		v.changes++
 		return nil
 
