@@ -13,8 +13,18 @@ import (
 	"golang.org/x/xerrors"
 )
 
+type Method int
+
+const (
+	_ = Method(iota)
+	GoErrors
+	Xerrors
+	PkgErrors
+)
+
 type Input struct {
 	PkgNames []string
+	Target   Method
 	DryRun   bool
 }
 
@@ -28,16 +38,19 @@ func Do(ctx context.Context, in Input) error {
 	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
-			p := astio.Position(pkg, file)
-			v := &pkgErrorsToXerrorsVisitor{}
+			v := newVisitor(in.Target)
+			if v == nil {
+				return xerrors.Errorf("unknown target method %v", in.Target)
+			}
 			if err := astio.Inspect(pkg, file, v); err != nil {
 				return xerrors.Errorf("could not inspect the file: %w", err)
 			}
-			if v.changes == 0 {
+			if v.Changes() == 0 {
 				continue
 			}
+			p := astio.Position(pkg, file)
 			if !in.DryRun {
-				log.Printf("%s: writing %d change(s)", p.Filename, v.changes)
+				log.Printf("%s: writing %d change(s)", p.Filename, v.Changes())
 				if err := astio.Write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}
@@ -47,32 +60,54 @@ func Do(ctx context.Context, in Input) error {
 	return nil
 }
 
-const (
-	pkgErrorsPkgPath = "github.com/pkg/errors"
-	xerrorsPkgPath   = "golang.org/x/xerrors"
-)
-
-type pkgErrorsToXerrorsVisitor struct {
-	changes int
+type Visitor interface {
+	astio.Visitor
+	Changes() int
 }
 
-func (v *pkgErrorsToXerrorsVisitor) Import(p token.Position, spec *ast.ImportSpec) error {
-	name := strings.Trim(spec.Path.Value, `"`)
-	if name != pkgErrorsPkgPath {
-		return nil
+func newVisitor(m Method) Visitor {
+	switch m {
+	case Xerrors:
+		return &toXerrorsVisitor{}
 	}
-	log.Printf("%s: rewriting the import with %s", p, xerrorsPkgPath)
-	spec.Path.Value = fmt.Sprintf(`"%s"`, xerrorsPkgPath)
-	v.changes++
 	return nil
 }
 
-func (v *pkgErrorsToXerrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, pkgName *types.PkgName, fun *ast.SelectorExpr) error {
-	packagePath := pkgName.Imported().Path()
-	if packagePath != pkgErrorsPkgPath {
+const (
+	pkgErrorsImportPath = "github.com/pkg/errors"
+	xerrorsImportPath   = "golang.org/x/xerrors"
+)
+
+type toXerrorsVisitor struct {
+	changes int
+}
+
+func (v *toXerrorsVisitor) Changes() int {
+	return v.changes
+}
+
+func (v *toXerrorsVisitor) Import(p token.Position, spec *ast.ImportSpec) error {
+	packagePath := strings.Trim(spec.Path.Value, `"`)
+	switch packagePath {
+	case pkgErrorsImportPath:
+		log.Printf("%s: rewriting the import with %s", p, xerrorsImportPath)
+		spec.Path.Value = fmt.Sprintf(`"%s"`, xerrorsImportPath)
+		v.changes++
 		return nil
 	}
+	return nil
+}
 
+func (v *toXerrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
+	packagePath := resolvedPkgName.Imported().Path()
+	switch packagePath {
+	case pkgErrorsImportPath:
+		return v.pkgErrorsFunctionCall(p, call, pkg, fun)
+	}
+	return nil
+}
+
+func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Wrapf":

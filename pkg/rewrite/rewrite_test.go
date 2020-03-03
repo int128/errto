@@ -49,7 +49,7 @@ func testRewrite(t *testing.T, ctx context.Context, fixtureFilename, wantFilenam
 		t.Fatalf("could not copy the fixture: %s", err)
 	}
 
-	if err := rewrite.Do(ctx, rewrite.Input{PkgNames: []string{"./" + tempDir}}); err != nil {
+	if err := rewrite.Do(ctx, rewrite.Input{Target: rewrite.Xerrors, PkgNames: []string{"./" + tempDir}}); err != nil {
 		t.Errorf("error: %+v", err)
 	}
 

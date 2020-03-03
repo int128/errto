@@ -11,7 +11,7 @@ import (
 
 type Visitor interface {
 	Import(p token.Position, spec *ast.ImportSpec) error
-	PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, pkgName *types.PkgName, fun *ast.SelectorExpr) error
+	PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error
 }
 
 func Inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
