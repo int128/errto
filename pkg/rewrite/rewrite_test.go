@@ -18,14 +18,19 @@ import (
 func TestDo(t *testing.T) {
 	log.Printf = t.Logf
 	ctx := context.TODO()
-	t.Run("pkg/errors to xerrors", func(t *testing.T) {
+	t.Run("pkg-errors to xerrors", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		testRewrite(t, ctx, "testdata/basic/pkgerrors/main.go", "testdata/basic/xerrors/main.go")
+		testRewrite(t, ctx, rewrite.Xerrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/xerrors/main.go")
+	})
+	t.Run("pkg-errors to go-errors", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		testRewrite(t, ctx, rewrite.GoErrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/goerrors/main.go")
 	})
 }
 
-func testRewrite(t *testing.T, ctx context.Context, fixtureFilename, wantFilename string) {
+func testRewrite(t *testing.T, ctx context.Context, target rewrite.Method, fixtureFilename, wantFilename string) {
 	tempDir, err := ioutil.TempDir(".", "fixture")
 	if err != nil {
 		t.Fatalf("could not create a temp dir: %s", err)
@@ -49,7 +54,7 @@ func testRewrite(t *testing.T, ctx context.Context, fixtureFilename, wantFilenam
 		t.Fatalf("could not copy the fixture: %s", err)
 	}
 
-	if err := rewrite.Do(ctx, rewrite.Input{Target: rewrite.Xerrors, PkgNames: []string{"./" + tempDir}}); err != nil {
+	if err := rewrite.Do(ctx, rewrite.Input{Target: target, PkgNames: []string{"./" + tempDir}}); err != nil {
 		t.Errorf("error: %+v", err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// check returns nil if s is a positive number.
 func check(s string) error {
 	n, err := strconv.Atoi(s)
 	if err != nil {
@@ -23,6 +24,7 @@ func check(s string) error {
 	return nil
 }
 
+// main is an entry point.
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatalf("usage: %s NUMBER", os.Args[0])

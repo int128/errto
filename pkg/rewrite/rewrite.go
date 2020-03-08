@@ -2,9 +2,11 @@ package rewrite
 
 import (
 	"context"
+	"go/ast"
 
 	"github.com/int128/transerr/pkg/astio"
 	"github.com/int128/transerr/pkg/log"
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
 
@@ -42,6 +44,9 @@ func Do(ctx context.Context, in Input) error {
 			if v == nil {
 				return xerrors.Errorf("unknown target method %v", in.Target)
 			}
+			if err := v.RewriteImports(pkg, file); err != nil {
+				return xerrors.Errorf("could not rewrite the imports: %w", err)
+			}
 			if err := astio.Inspect(pkg, file, v); err != nil {
 				return xerrors.Errorf("could not inspect the file: %w", err)
 			}
@@ -62,6 +67,7 @@ func Do(ctx context.Context, in Input) error {
 
 type Visitor interface {
 	astio.Visitor
+	RewriteImports(pkg *packages.Package, file *ast.File) error
 	Changes() int
 }
 
@@ -69,6 +75,8 @@ func newVisitor(m Method) Visitor {
 	switch m {
 	case Xerrors:
 		return &toXerrorsVisitor{}
+	case GoErrors:
+		return &toGoErrorsVisitor{}
 	}
 	return nil
 }

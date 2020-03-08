@@ -57,10 +57,8 @@ index eb32e7e..5ed2504 100644
 
 Currently the following rules are supported.
 
-- `github.com/pkg/errors` to `golang.org/x/xerrors`
-  - `errors.Errorf` to `xerrors.Errorf`
-  - `errors.New` to `xerrors.New`
-  - `errors.Wrapf` to `xerrors.Errorf`
+1. `github.com/pkg/errors` to `golang.org/x/xerrors`
+2. `github.com/pkg/errors` to `xerrors` (Go 1.13+)
 
 ### 1. `github.com/pkg/errors` to `golang.org/x/xerrors`
 
@@ -70,15 +68,25 @@ Currently the following rules are supported.
 | `errors.Errorf("message %s", msg)` | `xerrors.Errorf("message %s", msg)` |
 | `errors.New("message")` | `xerrors.New("message")` |
 | `errors.Wrapf(err, "message %s", msg)` | `xerrors.Errorf("message %s: %w", msg, err)` |
+| `errors.Cause(err)` | `xerrors.Unwrap(err)` |
 | `errors.Wrap()` | TODO |
-| `errors.Cause()` | TODO |
 | `errors.WithStack()` | TODO |
 | `errors.WithMessage()` | TODO |
 | `errors.WithMessagef()` | TODO |
 
-### 2. `xerrors` to `errors` (Go 1.13)
+### 2. `github.com/pkg/errors` to `xerrors` (Go 1.13+)
 
-TODO
+| From | To |
+|------|----|
+| `import "github.com/pkg/errors"` | `import "errors"` |
+| `errors.Errorf("message %s", msg)` | `fmt.Errorf("message %s", msg)` |
+| `errors.New("message")` | `errors.New("message")` |
+| `errors.Wrapf(err, "message %s", msg)` | `fmt.Errorf("message %s: %w", msg, err)` |
+| `errors.Cause(err)` | `errors.Unwrap(err)` |
+| `errors.Wrap()` | TODO |
+| `errors.WithStack()` | TODO |
+| `errors.WithMessage()` | TODO |
+| `errors.WithMessagef()` | TODO |
 
 
 ## Contributions
