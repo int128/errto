@@ -53,7 +53,7 @@ func Do(ctx context.Context, in Input) error {
 			}
 			if !in.DryRun {
 				p := astio.Position(pkg, file)
-				log.Printf("%s: writing %d change(s)", p.Filename, n)
+				log.Printf("writing %d change(s) to %s", n, p.Filename)
 				if err := astio.Write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}

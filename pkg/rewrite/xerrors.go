@@ -48,7 +48,7 @@ func (t *toXerrors) transformImports(pkg *packages.Package, file *ast.File) erro
 						}
 						switch path {
 						case pkgErrorsImportPath:
-							log.Printf("%s: rewrite: import %s -> %s", p, path, xerrorsImportPath)
+							log.Printf("rewrite: %s: import %s -> %s", p, path, xerrorsImportPath)
 							spec.Path.Value = strconv.Quote(xerrorsImportPath)
 							t.addChange()
 						}
@@ -74,7 +74,7 @@ func (t *toXerrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, 
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Wrapf":
-		log.Printf("%s: rewrite: pkg/errors.Wrapf() -> xerrors.Errorf()", p)
+		log.Printf("rewrite: %s: pkg/errors.Wrapf() -> xerrors.Errorf()", p)
 		pkg.Name = "xerrors"
 		fun.Sel.Name = "Errorf"
 
@@ -99,22 +99,21 @@ func (t *toXerrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, 
 		return nil
 
 	case "Errorf", "New":
-		log.Printf("%s: rewrite: pkg/errors.%s() -> xerrors.%s()", p, functionName, functionName)
+		log.Printf("rewrite: %s: pkg/errors.%s() -> xerrors.%s()", p, functionName, functionName)
 		pkg.Name = "xerrors"
 		t.addChange()
 		return nil
 
 	case "Cause":
-		log.Printf("%s: rewrite: pkg/errors.Cause() -> xerrors.Unwrap()", p)
+		log.Printf("rewrite: %s: pkg/errors.Cause() -> xerrors.Unwrap()", p)
 		pkg.Name = "xerrors"
 		fun.Sel.Name = "Unwrap"
 		t.addChange()
 		return nil
-
-	default:
-		log.Printf("%s: NOTE: you need to manually rewrite pkg/errors.%s() -> xerrors", p, functionName)
-		pkg.Name = "xerrors"
-		t.addChange()
-		return nil
 	}
+
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite pkg/errors.%s() -> xerrors", p, functionName)
+	pkg.Name = "xerrors"
+	t.addChange()
+	return nil
 }

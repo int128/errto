@@ -22,12 +22,12 @@ Run the following command.
 
 ```
 % transerr rewrite --to=xerrors ./pkg/rewrite/testdata/basic/pkgerrors
-pkg/rewrite/testdata/basic/pkgerrors/main.go:8:2: rewrite: import github.com/pkg/errors -> golang.org/x/xerrors
-pkg/rewrite/testdata/basic/pkgerrors/main.go:15:10: rewrite: pkg/errors.Wrapf() -> xerrors.Errorf()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:19:10: rewrite: pkg/errors.Errorf() -> xerrors.Errorf()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:22:10: rewrite: pkg/errors.New() -> xerrors.New()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:36:33: rewrite: pkg/errors.Cause() -> xerrors.Unwrap()
-pkg/rewrite/testdata/basic/pkgerrors/main.go: writing 5 change(s)
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:8:2: import github.com/pkg/errors -> golang.org/x/xerrors
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:15:10: pkg/errors.Wrapf() -> xerrors.Errorf()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:19:10: pkg/errors.Errorf() -> xerrors.Errorf()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:22:10: pkg/errors.New() -> xerrors.New()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:36:33: pkg/errors.Cause() -> xerrors.Unwrap()
+writing 5 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
 ```
 
 Then [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) will be rewrote as follows:
