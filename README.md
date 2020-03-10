@@ -86,7 +86,7 @@ Flags:
       --to string   Target error handling method (go-errors|xerrors|pkg-errors)
 ```
 
-It supports the following packages:
+It supports rewriting between the following packages:
 
 - `errors` (1.13+)
 - `golang.org/x/xerrors`
@@ -121,7 +121,14 @@ The following rewrite rules are supported.
   - `errors.Is(err, v)`
   - `golang.org/x/xerrors.Is(err, v)`
 
-Not implemented yet:
+### NOTE: these are not implemented yet
+
+Packages:
+
+- `errors` -> `golang.org/x/xerrors`
+- (any) -> `github.com/pkg/errors`
+
+Functions:
 
 - `golang.org/x/xerrors.Opaque()`
 - `github.com/pkg/errors.Wrap()`
