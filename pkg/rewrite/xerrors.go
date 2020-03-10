@@ -48,7 +48,7 @@ func (t *toXerrors) transformImports(pkg *packages.Package, file *ast.File) erro
 						}
 						switch path {
 						case pkgErrorsImportPath:
-							log.Printf("%s: rewrite: import pkg/errors -> xerrors", p)
+							log.Printf("%s: rewrite: import %s -> %s", p, path, xerrorsImportPath)
 							spec.Path.Value = strconv.Quote(xerrorsImportPath)
 							t.addChange()
 						}

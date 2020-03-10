@@ -9,7 +9,7 @@ import (
 func newRewriteCmd() *cobra.Command {
 	var o rewriteOption
 	c := &cobra.Command{
-		Use:   "rewrite --to=METHOD PACKAGE...",
+		Use:   "rewrite [flags] --to=METHOD PACKAGE...",
 		Short: "Rewrite error handling code",
 		RunE: func(c *cobra.Command, args []string) error {
 			to, err := o.parseTo()
