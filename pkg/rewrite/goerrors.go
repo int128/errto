@@ -14,19 +14,25 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type toGoErrorsVisitor struct {
+type toGoErrors struct {
 	changes int
 }
 
-func (v *toGoErrorsVisitor) Changes() int {
-	return v.changes
+func (t *toGoErrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
+	if err := t.transformImports(pkg, file); err != nil {
+		return 0, xerrors.Errorf("could not rewrite the imports: %w", err)
+	}
+	if err := astio.Inspect(pkg, file, t); err != nil {
+		return 0, xerrors.Errorf("could not inspect the file: %w", err)
+	}
+	return t.changes, nil
 }
 
-func (v *toGoErrorsVisitor) addChange() {
-	v.changes++
+func (t *toGoErrors) addChange() {
+	t.changes++
 }
 
-func (v *toGoErrorsVisitor) RewriteImports(pkg *packages.Package, file *ast.File) error {
+func (t *toGoErrors) transformImports(pkg *packages.Package, file *ast.File) error {
 	for _, decl := range file.Decls {
 		switch decl := decl.(type) {
 		case *ast.GenDecl:
@@ -48,6 +54,7 @@ func (v *toGoErrorsVisitor) RewriteImports(pkg *packages.Package, file *ast.File
 								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("errors")}},
 								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("fmt")}},
 							)
+							t.addChange()
 						default:
 							specs = append(specs, spec)
 						}
@@ -61,16 +68,16 @@ func (v *toGoErrorsVisitor) RewriteImports(pkg *packages.Package, file *ast.File
 	return nil
 }
 
-func (v *toGoErrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
+func (t *toGoErrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
 	packagePath := resolvedPkgName.Imported().Path()
 	switch packagePath {
 	case pkgErrorsImportPath:
-		return v.pkgErrorsFunctionCall(p, call, pkg, fun)
+		return t.pkgErrorsFunctionCall(p, call, pkg, fun)
 	}
 	return nil
 }
 
-func (v *toGoErrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+func (t *toGoErrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Wrapf":
@@ -95,34 +102,34 @@ func (v *toGoErrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Ca
 			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
 		}
 		b.Value = fmt.Sprintf(`"%s: %%w"`, strings.Trim(b.Value, `"`))
-		v.addChange()
+		t.addChange()
 		return nil
 
 	case "Errorf":
 		log.Printf("%s: rewrite: pkg/errors.Errorf() -> fmt.Errorf()", p)
 		pkg.Name = "fmt"
 		fun.Sel.Name = "Errorf"
-		v.addChange()
+		t.addChange()
 		return nil
 
 	case "New":
 		log.Printf("%s: rewrite: pkg/errors.New() -> errors.New()", p)
 		pkg.Name = "errors"
 		fun.Sel.Name = "New"
-		v.addChange()
+		t.addChange()
 		return nil
 
 	case "Cause":
 		log.Printf("%s: rewrite: pkg/errors.Cause() -> errors.Unwrap()", p)
 		pkg.Name = "errors"
 		fun.Sel.Name = "Unwrap"
-		v.addChange()
+		t.addChange()
 		return nil
 
 	default:
 		log.Printf("%s: NOTE: you need to manually rewrite pkg/errors.%s() -> errors", p, functionName)
 		pkg.Name = "errors"
-		v.addChange()
+		t.addChange()
 		return nil
 	}
 }

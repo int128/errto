@@ -40,22 +40,20 @@ func Do(ctx context.Context, in Input) error {
 	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
-			v := newVisitor(in.Target)
-			if v == nil {
+			t := newTransformer(in.Target)
+			if t == nil {
 				return xerrors.Errorf("unknown target method %v", in.Target)
 			}
-			if err := v.RewriteImports(pkg, file); err != nil {
-				return xerrors.Errorf("could not rewrite the imports: %w", err)
+			n, err := t.Transform(pkg, file)
+			if err != nil {
+				return xerrors.Errorf("could not rewrite the file: %w", err)
 			}
-			if err := astio.Inspect(pkg, file, v); err != nil {
-				return xerrors.Errorf("could not inspect the file: %w", err)
-			}
-			if v.Changes() == 0 {
+			if n == 0 {
 				continue
 			}
-			p := astio.Position(pkg, file)
 			if !in.DryRun {
-				log.Printf("%s: writing %d change(s)", p.Filename, v.Changes())
+				p := astio.Position(pkg, file)
+				log.Printf("%s: writing %d change(s)", p.Filename, n)
 				if err := astio.Write(pkg, file); err != nil {
 					return xerrors.Errorf("could not write the file: %w", err)
 				}
@@ -65,18 +63,16 @@ func Do(ctx context.Context, in Input) error {
 	return nil
 }
 
-type Visitor interface {
-	astio.Visitor
-	RewriteImports(pkg *packages.Package, file *ast.File) error
-	Changes() int
+type Transformer interface {
+	Transform(pkg *packages.Package, file *ast.File) (int, error)
 }
 
-func newVisitor(m Method) Visitor {
+func newTransformer(m Method) Transformer {
 	switch m {
 	case Xerrors:
-		return &toXerrorsVisitor{}
+		return &toXerrors{}
 	case GoErrors:
-		return &toGoErrorsVisitor{}
+		return &toGoErrors{}
 	}
 	return nil
 }
