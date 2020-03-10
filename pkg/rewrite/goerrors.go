@@ -48,8 +48,8 @@ func (t *toGoErrors) transformImports(pkg *packages.Package, file *ast.File) err
 							return xerrors.Errorf("%s: import expects a quoted string: %w", p, err)
 						}
 						switch path {
-						case pkgErrorsImportPath:
-							log.Printf("%s: rewrite: import pkg/errors -> errors, fmt", p)
+						case pkgErrorsImportPath, xerrorsImportPath:
+							log.Printf("%s: rewrite: import %s -> errors, fmt", p, path)
 							specs = append(specs,
 								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("errors")}},
 								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("fmt")}},
@@ -73,6 +73,9 @@ func (t *toGoErrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, p
 	switch packagePath {
 	case pkgErrorsImportPath:
 		return t.pkgErrorsFunctionCall(p, call, pkg, fun)
+	case xerrorsImportPath:
+		t.xerrorsFunctionCall(p, pkg, fun)
+		return nil
 	}
 	return nil
 }
@@ -113,9 +116,8 @@ func (t *toGoErrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr,
 		return nil
 
 	case "New":
-		log.Printf("%s: rewrite: pkg/errors.New() -> errors.New()", p)
+		log.Printf("%s: rewrite: pkg/errors.%s() -> errors.%s()", p, functionName, functionName)
 		pkg.Name = "errors"
-		fun.Sel.Name = "New"
 		t.addChange()
 		return nil
 
@@ -131,5 +133,26 @@ func (t *toGoErrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr,
 		pkg.Name = "errors"
 		t.addChange()
 		return nil
+	}
+}
+
+func (t *toGoErrors) xerrorsFunctionCall(p token.Position, pkg *ast.Ident, fun *ast.SelectorExpr) {
+	functionName := fun.Sel.Name
+	switch functionName {
+	case "Errorf":
+		log.Printf("%s: rewrite: xerrors.Errorf() -> fmt.Errorf()", p)
+		pkg.Name = "fmt"
+		fun.Sel.Name = "Errorf"
+		t.addChange()
+
+	case "New", "Unwrap", "As", "Is":
+		log.Printf("%s: rewrite: xerrors.%s() -> errors.%s()", p, functionName, functionName)
+		pkg.Name = "errors"
+		t.addChange()
+
+	default:
+		log.Printf("%s: NOTE: you need to manually rewrite xerrors.%s() -> errors", p, functionName)
+		pkg.Name = "errors"
+		t.addChange()
 	}
 }

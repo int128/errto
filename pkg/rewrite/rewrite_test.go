@@ -18,15 +18,31 @@ import (
 func TestDo(t *testing.T) {
 	log.Printf = t.Logf
 	ctx := context.TODO()
-	t.Run("pkg-errors to xerrors", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(ctx, time.Second)
-		defer cancel()
-		testRewrite(t, ctx, rewrite.Xerrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/xerrors/main.go")
+
+	t.Run("basic", func(t *testing.T) {
+		t.Run("pkg-errors to xerrors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.Xerrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/xerrors/main.go")
+		})
+		t.Run("pkg-errors to go-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.GoErrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/goerrors/main.go")
+		})
+		t.Run("xerrors to go-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.GoErrors, "testdata/basic/xerrors/main.go", "testdata/basic/goerrors/main.go")
+		})
 	})
-	t.Run("pkg-errors to go-errors", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(ctx, time.Second)
-		defer cancel()
-		testRewrite(t, ctx, rewrite.GoErrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/goerrors/main.go")
+
+	t.Run("full", func(t *testing.T) {
+		t.Run("xerrors to go-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.GoErrors, "testdata/full/xerrors/main.go", "testdata/full/goerrors/main.go")
+		})
 	})
 }
 

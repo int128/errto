@@ -58,7 +58,8 @@ index eb32e7e..5ed2504 100644
 Currently the following rules are supported.
 
 1. `github.com/pkg/errors` to `golang.org/x/xerrors`
-2. `github.com/pkg/errors` to `xerrors` (Go 1.13+)
+2. `github.com/pkg/errors` to `errors` (Go 1.13+)
+3. `golang.org/x/xerrors` to `errors` (Go 1.13+)
 
 ### 1. `github.com/pkg/errors` to `golang.org/x/xerrors`
 
@@ -74,7 +75,7 @@ Currently the following rules are supported.
 | `errors.WithMessage()` | TODO |
 | `errors.WithMessagef()` | TODO |
 
-### 2. `github.com/pkg/errors` to `xerrors` (Go 1.13+)
+### 2. `github.com/pkg/errors` to `errors` (Go 1.13+)
 
 | From | To |
 |------|----|
@@ -87,6 +88,18 @@ Currently the following rules are supported.
 | `errors.WithStack()` | TODO |
 | `errors.WithMessage()` | TODO |
 | `errors.WithMessagef()` | TODO |
+
+### 3. `golang.org/x/xerrors` to `errors` (Go 1.13+)
+
+| From | To |
+|------|----|
+| `import "golang.org/x/xerrors"` | `import "errors"` |
+| `xerrors.Errorf("message %s", msg)` | `fmt.Errorf("message %s", msg)` |
+| `xerrors.New("message")` | `errors.New("message")` |
+| `xerrors.Unwrap(err)` | `errors.Unwrap(err)` |
+| `xerrors.As(err, v)` | `errors.As(err, v)` |
+| `xerrors.Is(err, v)` | `errors.Is(err, v)` |
+| `xerrors.Opaque()` | - |
 
 
 ## Contributions
