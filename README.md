@@ -20,7 +20,7 @@ go get github.com/int128/transerr
 
 Run the following command.
 
-```console
+```
 % transerr rewrite --to=xerrors ./pkg/rewrite/testdata/basic/pkgerrors
 pkg/rewrite/testdata/basic/pkgerrors/main.go:8:2: rewrite: import github.com/pkg/errors -> golang.org/x/xerrors
 pkg/rewrite/testdata/basic/pkgerrors/main.go:15:10: rewrite: pkg/errors.Wrapf() -> xerrors.Errorf()
@@ -88,74 +88,46 @@ Flags:
 
 It supports the following packages:
 
-1. `errors` (1.13+)
-1. `golang.org/x/xerrors`
-1. `github.com/pkg/errors`
+- `errors` (1.13+)
+- `golang.org/x/xerrors`
+- `github.com/pkg/errors`
 
+The following rewrite rules are supported.
 
-#### 1. Rewrite to `errors`
+- Import the package.
+  - `import "errors"`, `import "fmt"`
+  - `import "golang.org/x/xerrors"`
+  - `import "github.com/pkg/errors"`
+- Create an error.
+  - `errors.New("message")`
+  - `golang.org/x/xerrors.New("message")`
+  - `github.com/pkg/errors.New("message")`
+- Format an error.
+  - `fmt.Errorf("message %s", msg)`
+  - `github.com/pkg/errors.Errorf("message %s", msg)`
+  - `golang.org/x/xerrors.Errorf("message %s", msg)`
+- Wrap an error.
+  - `fmt.Errorf("message %s: %w", msg, err)`
+  - `golang.org/x/xerrors.Errorf("message %s: %w", msg, err)`
+  - `github.com/pkg/errors.Wrapf(err, "message %s", msg)`
+- Unwrap an error.
+  - `errors.Unwrap(err)`
+  - `golang.org/x/xerrors.Unwrap(err)`
+  - `github.com/pkg/errors.Cause(err)`
+- Unwrap and cast an error.
+  - `errors.As(err, v)`
+  - `golang.org/x/xerrors.As(err, v)`
+- Unwrap and test an error.
+  - `errors.Is(err, v)`
+  - `golang.org/x/xerrors.Is(err, v)`
 
-If `--to=go-errors` is set, it rewrites code as follows:
+Not implemented yet:
 
-| From | To |
-|------|----|
-| `import "github.com/pkg/errors"` | `import "errors"`<br>`import "fmt"` |
-| `errors.Errorf("message %s", msg)` | `fmt.Errorf("message %s", msg)` |
-| `errors.New("message")` | `errors.New("message")` |
-| `errors.Wrapf(err, "message %s", msg)` | `fmt.Errorf("message %s: %w", msg, err)` |
-| `errors.Cause(err)` | `errors.Unwrap(err)` |
-| `errors.Wrap()` | - |
-| `errors.WithStack()` | - |
-| `errors.WithMessage()` | - |
-| `errors.WithMessagef()` | - |
-| `import "golang.org/x/xerrors"` | `import "errors"`<br>`import "fmt"` |
-| `xerrors.Errorf("message %s", msg)` | `fmt.Errorf("message %s", msg)` |
-| `xerrors.New("message")` | `errors.New("message")` |
-| `xerrors.Unwrap(err)` | `errors.Unwrap(err)` |
-| `xerrors.As(err, v)` | `errors.As(err, v)` |
-| `xerrors.Is(err, v)` | `errors.Is(err, v)` |
-| `xerrors.Opaque()` | - |
-
-Note: `-` is not implemented yet.
-
-
-#### 2. Rewrite to `golang.org/x/xerrors`
-
-If `--to=xerrors` is set, it rewrites code as follows:
-
-| From | To |
-|------|----|
-| `import "github.com/pkg/errors"` | `import "golang.org/x/xerrors"` |
-| `errors.Errorf("message %s", msg)` | `xerrors.Errorf("message %s", msg)` |
-| `errors.New("message")` | `xerrors.New("message")` |
-| `errors.Wrapf(err, "message %s", msg)` | `xerrors.Errorf("message %s: %w", msg, err)` |
-| `errors.Cause(err)` | `xerrors.Unwrap(err)` |
-| `errors.Wrap()` | - |
-| `errors.WithStack()` | - |
-| `errors.WithMessage()` | - |
-| `errors.WithMessagef()` | - |
-
-Note: `-` is not implemented yet.
-
-
-#### 3. Rewrite to `github.com/pkg/errors`
-
-If `--to=pkg-errors` is set, it rewrites code as follows:
-
-| From | To |
-|------|----|
-| `import "errors"` `"fmt"` | - |
-| `fmt.Errorf("message %s", msg)` | - |
-| `errors.New("message")` | - |
-| `fmt.Errorf("message %s: %w", msg, err)` | - |
-| `errors.Unwrap(err)` | - |
-| `import "golang.org/x/xerrors"` | - |
-| `xerrors.Errorf("message %s", msg)` | - |
-| `xerrors.New("message")` | - |
-| `xerrors.Errorf("message %s: %w", msg, err)` | - |
-| `xerrors.Unwrap(err)` | - |
-
-Note: `-` is not implemented yet.
+- `golang.org/x/xerrors.Opaque()`
+- `github.com/pkg/errors.Wrap()`
+- `github.com/pkg/errors.WithStack()`
+- `github.com/pkg/errors.WithMessage()`
+- `github.com/pkg/errors.WithMessagef()`
 
 
 ### Dump command
