@@ -1,11 +1,10 @@
 package main
 
 import (
+	"golang.org/x/xerrors"
 	"log"
 	"os"
 	"strconv"
-
-	"golang.org/x/xerrors"
 )
 
 func check(s string) error {

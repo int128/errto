@@ -1,11 +1,10 @@
 package main
 
 import (
+	"github.com/pkg/errors"
 	"log"
 	"os"
 	"strconv"
-
-	"github.com/pkg/errors"
 )
 
 // check returns nil if s is a positive number.

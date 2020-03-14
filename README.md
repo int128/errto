@@ -125,7 +125,6 @@ The following rewrite rules are supported.
 
 Packages:
 
-- `errors` -> `golang.org/x/xerrors`
 - (any) -> `github.com/pkg/errors`
 
 Functions:

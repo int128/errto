@@ -25,6 +25,11 @@ func TestDo(t *testing.T) {
 			defer cancel()
 			testRewrite(t, ctx, rewrite.Xerrors, "testdata/basic/pkgerrors/main.go", "testdata/basic/xerrors/main.go")
 		})
+		t.Run("go-errors to xerrors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.Xerrors, "testdata/basic/goerrors/main.go", "testdata/basic/xerrors/main.go")
+		})
 		t.Run("pkg-errors to go-errors", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
@@ -38,6 +43,11 @@ func TestDo(t *testing.T) {
 	})
 
 	t.Run("full", func(t *testing.T) {
+		t.Run("go-errors to xerrors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.Xerrors, "testdata/full/goerrors/main.go", "testdata/full/xerrors/main.go")
+		})
 		t.Run("xerrors to go-errors", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()

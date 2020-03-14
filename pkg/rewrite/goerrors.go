@@ -5,11 +5,11 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"strconv"
 	"strings"
 
 	"github.com/int128/transerr/pkg/astio"
 	"github.com/int128/transerr/pkg/log"
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
@@ -19,53 +19,31 @@ type toGoErrors struct {
 }
 
 func (t *toGoErrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
-	if err := t.transformImports(pkg, file); err != nil {
-		return 0, xerrors.Errorf("could not rewrite the imports: %w", err)
+	if astutil.AddImport(pkg.Fset, file, "errors") {
+		log.Printf("rewrite: added import %s", "errors")
+		t.addChange()
+	}
+	if astutil.AddImport(pkg.Fset, file, "fmt") {
+		log.Printf("rewrite: added import %s", "fmt")
+		t.addChange()
+	}
+	if astutil.DeleteImport(pkg.Fset, file, xerrorsImportPath) {
+		log.Printf("rewrite: deleted import %s", xerrorsImportPath)
+		t.addChange()
+	}
+	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
+		log.Printf("rewrite: deleted import %s", pkgErrorsImportPath)
+		t.addChange()
 	}
 	if err := astio.Inspect(pkg, file, t); err != nil {
 		return 0, xerrors.Errorf("could not inspect the file: %w", err)
 	}
+	ast.SortImports(pkg.Fset, file)
 	return t.changes, nil
 }
 
 func (t *toGoErrors) addChange() {
 	t.changes++
-}
-
-func (t *toGoErrors) transformImports(pkg *packages.Package, file *ast.File) error {
-	for _, decl := range file.Decls {
-		switch decl := decl.(type) {
-		case *ast.GenDecl:
-			switch decl.Tok {
-			case token.IMPORT:
-				specs := make([]ast.Spec, 0)
-				for _, spec := range decl.Specs {
-					p := astio.Position(pkg, spec)
-					switch spec := spec.(type) {
-					case *ast.ImportSpec:
-						path, err := strconv.Unquote(spec.Path.Value)
-						if err != nil {
-							return xerrors.Errorf("%s: import expects a quoted string: %w", p, err)
-						}
-						switch path {
-						case pkgErrorsImportPath, xerrorsImportPath:
-							log.Printf("rewrite: %s: import %s -> errors, fmt", p, path)
-							specs = append(specs,
-								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("errors")}},
-								&ast.ImportSpec{Path: &ast.BasicLit{Value: strconv.Quote("fmt")}},
-							)
-							t.addChange()
-						default:
-							specs = append(specs, spec)
-						}
-					}
-				}
-				decl.Specs = specs
-			}
-		}
-	}
-	ast.SortImports(pkg.Fset, file)
-	return nil
 }
 
 func (t *toGoErrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {

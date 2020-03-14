@@ -5,11 +5,11 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"strconv"
 	"strings"
 
 	"github.com/int128/transerr/pkg/astio"
 	"github.com/int128/transerr/pkg/log"
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
@@ -19,12 +19,28 @@ type toXerrors struct {
 }
 
 func (t *toXerrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
-	if err := t.transformImports(pkg, file); err != nil {
-		return 0, xerrors.Errorf("could not rewrite the imports: %w", err)
+	if astutil.AddImport(pkg.Fset, file, xerrorsImportPath) {
+		log.Printf("rewrite: added import %s", xerrorsImportPath)
+		t.addChange()
+	}
+	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
+		log.Printf("rewrite: deleted import %s", pkgErrorsImportPath)
+		t.addChange()
+	}
+	if astutil.DeleteImport(pkg.Fset, file, "errors") {
+		log.Printf("rewrite: deleted import %s", "errors")
+		t.addChange()
 	}
 	if err := astio.Inspect(pkg, file, t); err != nil {
 		return 0, xerrors.Errorf("could not inspect the file: %w", err)
 	}
+	if !astutil.UsesImport(file, "fmt") {
+		if astutil.DeleteImport(pkg.Fset, file, "fmt") {
+			log.Printf("rewrite: deleted import %s", "fmt")
+			t.addChange()
+		}
+	}
+	ast.SortImports(pkg.Fset, file)
 	return t.changes, nil
 }
 
@@ -32,40 +48,39 @@ func (t *toXerrors) addChange() {
 	t.changes++
 }
 
-func (t *toXerrors) transformImports(pkg *packages.Package, file *ast.File) error {
-	for _, decl := range file.Decls {
-		switch decl := decl.(type) {
-		case *ast.GenDecl:
-			switch decl.Tok {
-			case token.IMPORT:
-				for _, spec := range decl.Specs {
-					p := astio.Position(pkg, spec)
-					switch spec := spec.(type) {
-					case *ast.ImportSpec:
-						path, err := strconv.Unquote(spec.Path.Value)
-						if err != nil {
-							return xerrors.Errorf("%s: import expects a quoted string: %w", p, err)
-						}
-						switch path {
-						case pkgErrorsImportPath:
-							log.Printf("rewrite: %s: import %s -> %s", p, path, xerrorsImportPath)
-							spec.Path.Value = strconv.Quote(xerrorsImportPath)
-							t.addChange()
-						}
-					}
-				}
-			}
-		}
-	}
-	ast.SortImports(pkg.Fset, file)
-	return nil
-}
-
 func (t *toXerrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
 	packagePath := resolvedPkgName.Imported().Path()
 	switch packagePath {
 	case pkgErrorsImportPath:
 		return t.pkgErrorsFunctionCall(p, call, pkg, fun)
+	case "errors":
+		return t.goErrorsFunctionCall(p, call, pkg, fun)
+	case "fmt":
+		return t.goFmtFunctionCall(p, call, pkg, fun)
+	}
+	return nil
+}
+
+func (t *toXerrors) goErrorsFunctionCall(p token.Position, _ *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+	functionName := fun.Sel.Name
+	switch functionName {
+	case "New", "Unwrap", "As", "Is":
+		log.Printf("rewrite: %s: errors.%s() -> xerrors.%s()", p, functionName, functionName)
+		pkg.Name = "xerrors"
+		t.addChange()
+		return nil
+	}
+	return nil
+}
+
+func (t *toXerrors) goFmtFunctionCall(p token.Position, _ *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+	functionName := fun.Sel.Name
+	switch functionName {
+	case "Errorf":
+		log.Printf("rewrite: %s: fmt.Errorf() -> xerrors.Errorf()", p)
+		pkg.Name = "xerrors"
+		t.addChange()
+		return nil
 	}
 	return nil
 }
