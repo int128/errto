@@ -123,10 +123,6 @@ The following rewrite rules are supported.
 
 ### NOTE: these are not implemented yet
 
-Packages:
-
-- (any) -> `github.com/pkg/errors`
-
 Functions:
 
 - `golang.org/x/xerrors.Opaque()`

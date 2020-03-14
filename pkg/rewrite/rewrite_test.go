@@ -40,6 +40,16 @@ func TestDo(t *testing.T) {
 			defer cancel()
 			testRewrite(t, ctx, rewrite.GoErrors, "testdata/basic/xerrors/main.go", "testdata/basic/goerrors/main.go")
 		})
+		t.Run("go-errors to pkg-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.PkgErrors, "testdata/basic/goerrors/main.go", "testdata/basic/pkgerrors/main.go")
+		})
+		t.Run("xerrors to pkg-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.PkgErrors, "testdata/basic/xerrors/main.go", "testdata/basic/pkgerrors/main.go")
+		})
 	})
 
 	t.Run("full", func(t *testing.T) {

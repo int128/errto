@@ -73,6 +73,8 @@ func newTransformer(m Method) Transformer {
 		return &toXerrors{}
 	case GoErrors:
 		return &toGoErrors{}
+	case PkgErrors:
+		return &toPkgErrors{}
 	}
 	return nil
 }
