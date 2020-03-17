@@ -15,6 +15,11 @@ func Position(pkg *packages.Package, node ast.Node) token.Position {
 	return p
 }
 
+func Filename(pkg *packages.Package, file *ast.File) string {
+	p := pkg.Fset.Position(file.Pos())
+	return relative(p.Filename)
+}
+
 func relative(name string) string {
 	wd, err := os.Getwd()
 	if err != nil {

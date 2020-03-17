@@ -13,108 +13,119 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type toPkgErrors struct {
-	changes int
-}
+type toPkgErrors struct{}
 
 func (t *toPkgErrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
+	var v toPkgErrorsVisitor
+	if err := astio.Inspect(pkg, file, &v); err != nil {
+		return 0, xerrors.Errorf("could not inspect the file: %w", err)
+	}
+	if v.needImport == 0 {
+		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
+		return 0, nil
+	}
+	n := t.replaceImports(pkg, file)
+	return v.needImport + n, nil
+}
+
+func (*toPkgErrors) replaceImports(pkg *packages.Package, file *ast.File) int {
+	var n int
 	if astutil.AddImport(pkg.Fset, file, pkgErrorsImportPath) {
-		log.Printf("rewrite: added import %s", pkgErrorsImportPath)
-		t.addChange()
+		n++
+		log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
 	}
 	if astutil.DeleteImport(pkg.Fset, file, xerrorsImportPath) {
-		log.Printf("rewrite: deleted import %s", xerrorsImportPath)
-		t.addChange()
+		n++
+		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), xerrorsImportPath)
 	}
 	if astutil.DeleteImport(pkg.Fset, file, "errors") {
-		log.Printf("rewrite: deleted import %s", "errors")
-		t.addChange()
-	}
-	if err := astio.Inspect(pkg, file, t); err != nil {
-		return 0, xerrors.Errorf("could not inspect the file: %w", err)
+		n++
+		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), "errors")
 	}
 	if !astutil.UsesImport(file, "fmt") {
 		if astutil.DeleteImport(pkg.Fset, file, "fmt") {
-			log.Printf("rewrite: deleted import %s", "fmt")
-			t.addChange()
+			n++
+			log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), "fmt")
 		}
 	}
 	ast.SortImports(pkg.Fset, file)
-	return t.changes, nil
+	return n
 }
 
-func (t *toPkgErrors) addChange() {
-	t.changes++
+type toPkgErrorsVisitor struct {
+	needImport int
 }
 
-func (t *toPkgErrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
+func (v *toPkgErrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
 	packagePath := resolvedPkgName.Imported().Path()
 	switch packagePath {
 	case xerrorsImportPath:
-		return t.xerrorsFunctionCall(p, call, pkg, fun)
+		return v.xerrorsFunctionCall(p, call, pkg, fun)
 	case "errors":
-		return t.goErrorsFunctionCall(p, call, pkg, fun)
+		return v.goErrorsFunctionCall(p, call, pkg, fun)
 	case "fmt":
-		return t.goFmtFunctionCall(p, call, pkg, fun)
+		return v.goFmtFunctionCall(p, call, pkg, fun)
 	}
 	return nil
 }
 
-func (t *toPkgErrors) goErrorsFunctionCall(p token.Position, _ *ast.CallExpr, _ *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toPkgErrorsVisitor) goErrorsFunctionCall(p token.Position, _ *ast.CallExpr, _ *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "New":
 		log.Printf("rewrite: %s: errors.%s() -> pkg/errors.%s()", p, functionName, functionName)
+		v.needImport++
 		return nil
 
 	case "Unwrap":
 		log.Printf("rewrite: %s: errors.Unwrap() -> pkg/errors.Cause()", p)
 		fun.Sel.Name = "Cause"
-		t.addChange()
+		v.needImport++
 		return nil
 	}
 
 	log.Printf("rewrite: %s: NOTE: you need to manually rewrite errors.%s() -> pkg/errors", p, functionName)
+	v.needImport++
 	return nil
 }
 
-func (t *toPkgErrors) goFmtFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toPkgErrorsVisitor) goFmtFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Errorf":
 		pkg.Name = "errors"
-		t.addChange()
+		v.needImport++
 		return errorfFromGoErrorsToPkgErrors(p, call, pkg, fun)
 	}
 	return nil
 }
 
-func (t *toPkgErrors) xerrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toPkgErrorsVisitor) xerrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "New":
 		log.Printf("rewrite: %s: xerrors.%s() -> pkg/errors.%s()", p, functionName, functionName)
 		pkg.Name = "errors"
-		t.addChange()
+		v.needImport++
 		return nil
 
 	case "Errorf":
 		log.Printf("rewrite: %s: xerrors.%s() -> pkg/errors.%s()", p, functionName, functionName)
 		pkg.Name = "errors"
-		t.addChange()
+		v.needImport++
 		return errorfFromGoErrorsToPkgErrors(p, call, pkg, fun)
 
 	case "Unwrap":
 		log.Printf("rewrite: %s: xerrors.Unwrap() -> pkg/errors.Cause()", p)
 		pkg.Name = "errors"
 		fun.Sel.Name = "Cause"
-		t.addChange()
+		v.needImport++
 		return nil
 	}
 
 	log.Printf("rewrite: %s: NOTE: you need to manually rewrite xerrors.%s() -> pkg/errors", p, functionName)
 	pkg.Name = "errors"
-	t.addChange()
+	v.needImport++
 	return nil
 }
 

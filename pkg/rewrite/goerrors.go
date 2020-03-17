@@ -14,54 +14,69 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type toGoErrors struct {
-	changes int
-}
+type toGoErrors struct{}
 
 func (t *toGoErrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
-	if astutil.AddImport(pkg.Fset, file, "errors") {
-		log.Printf("rewrite: added import %s", "errors")
-		t.addChange()
-	}
-	if astutil.AddImport(pkg.Fset, file, "fmt") {
-		log.Printf("rewrite: added import %s", "fmt")
-		t.addChange()
-	}
-	if astutil.DeleteImport(pkg.Fset, file, xerrorsImportPath) {
-		log.Printf("rewrite: deleted import %s", xerrorsImportPath)
-		t.addChange()
-	}
-	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
-		log.Printf("rewrite: deleted import %s", pkgErrorsImportPath)
-		t.addChange()
-	}
-	if err := astio.Inspect(pkg, file, t); err != nil {
+	var v toGoErrorsVisitor
+	if err := astio.Inspect(pkg, file, &v); err != nil {
 		return 0, xerrors.Errorf("could not inspect the file: %w", err)
 	}
-	ast.SortImports(pkg.Fset, file)
-	return t.changes, nil
+	if v.needImportFmt == 0 && v.needImportErrors == 0 {
+		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
+		return 0, nil
+	}
+	n := t.replaceImports(pkg, file, v.needImportFmt, v.needImportErrors)
+	return v.needImportFmt + v.needImportErrors + n, nil
 }
 
-func (t *toGoErrors) addChange() {
-	t.changes++
+func (*toGoErrors) replaceImports(pkg *packages.Package, file *ast.File, needImportFmt, needImportErrors int) int {
+	var n int
+	if needImportFmt > 0 {
+		if astutil.AddImport(pkg.Fset, file, "fmt") {
+			n++
+			log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), "fmt")
+		}
+	}
+	if needImportErrors > 0 {
+		if astutil.AddImport(pkg.Fset, file, "errors") {
+			n++
+			log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), "errors")
+		}
+	}
+	if astutil.DeleteImport(pkg.Fset, file, xerrorsImportPath) {
+		n++
+		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), xerrorsImportPath)
+	}
+	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
+		n++
+		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
+	}
+	if n > 0 {
+		ast.SortImports(pkg.Fset, file)
+	}
+	return n
 }
 
-func (t *toGoErrors) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
+type toGoErrorsVisitor struct {
+	needImportFmt    int
+	needImportErrors int
+}
+
+func (v *toGoErrorsVisitor) PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error {
 	packagePath := resolvedPkgName.Imported().Path()
 	switch packagePath {
 	case pkgErrorsImportPath:
-		return t.pkgErrorsFunctionCall(p, call, pkg, fun)
+		return v.pkgErrorsFunctionCall(p, call, pkg, fun)
 	case xerrorsImportPath:
-		return t.xerrorsFunctionCall(p, pkg, fun)
+		return v.xerrorsFunctionCall(p, pkg, fun)
 	}
 	return nil
 }
 
-func (t *toGoErrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toGoErrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Wrapf":
-		log.Printf("rewrite: %s: pkg/errors.Wrapf() -> fmt.Errorf()", p)
 		pkg.Name = "fmt"
 		fun.Sel.Name = "Errorf"
 
@@ -82,55 +97,57 @@ func (t *toGoErrors) pkgErrorsFunctionCall(p token.Position, call *ast.CallExpr,
 			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
 		}
 		b.Value = fmt.Sprintf(`"%s: %%w"`, strings.Trim(b.Value, `"`))
-		t.addChange()
+
+		log.Printf("rewrite: %s: pkg/errors.Wrapf() -> fmt.Errorf()", p)
+		v.needImportFmt++
 		return nil
 
 	case "Errorf":
-		log.Printf("rewrite: %s: pkg/errors.Errorf() -> fmt.Errorf()", p)
 		pkg.Name = "fmt"
 		fun.Sel.Name = "Errorf"
-		t.addChange()
+		log.Printf("rewrite: %s: pkg/errors.Errorf() -> fmt.Errorf()", p)
+		v.needImportFmt++
 		return nil
 
 	case "New":
-		log.Printf("rewrite: %s: pkg/errors.%s() -> errors.%s()", p, functionName, functionName)
 		pkg.Name = "errors"
-		t.addChange()
+		log.Printf("rewrite: %s: pkg/errors.%s() -> errors.%s()", p, functionName, functionName)
+		v.needImportErrors++
 		return nil
 
 	case "Cause":
-		log.Printf("rewrite: %s: pkg/errors.Cause() -> errors.Unwrap()", p)
 		pkg.Name = "errors"
 		fun.Sel.Name = "Unwrap"
-		t.addChange()
+		log.Printf("rewrite: %s: pkg/errors.Cause() -> errors.Unwrap()", p)
+		v.needImportErrors++
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite pkg/errors.%s() -> errors", p, functionName)
 	pkg.Name = "errors"
-	t.addChange()
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite pkg/errors.%s() -> errors", p, functionName)
+	v.needImportErrors++
 	return nil
 }
 
-func (t *toGoErrors) xerrorsFunctionCall(p token.Position, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toGoErrorsVisitor) xerrorsFunctionCall(p token.Position, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Errorf":
-		log.Printf("rewrite: %s: xerrors.Errorf() -> fmt.Errorf()", p)
 		pkg.Name = "fmt"
 		fun.Sel.Name = "Errorf"
-		t.addChange()
+		log.Printf("rewrite: %s: xerrors.Errorf() -> fmt.Errorf()", p)
+		v.needImportFmt++
 		return nil
 
 	case "New", "Unwrap", "As", "Is":
-		log.Printf("rewrite: %s: xerrors.%s() -> errors.%s()", p, functionName, functionName)
 		pkg.Name = "errors"
-		t.addChange()
+		log.Printf("rewrite: %s: xerrors.%s() -> errors.%s()", p, functionName, functionName)
+		v.needImportErrors++
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite xerrors.%s() -> errors", p, functionName)
 	pkg.Name = "errors"
-	t.addChange()
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite xerrors.%s() -> errors", p, functionName)
+	v.needImportErrors++
 	return nil
 }
