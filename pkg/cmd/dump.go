@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/int128/transerr/pkg/dump"
+	"github.com/int128/errto/pkg/dump"
 	"github.com/spf13/cobra"
 	"golang.org/x/xerrors"
 )

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/int128/transerr/pkg/cmd"
+	"github.com/int128/errto/pkg/cmd"
 )
 
 func init() {

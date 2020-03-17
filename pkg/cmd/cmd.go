@@ -9,7 +9,7 @@ import (
 
 func Run(ctx context.Context, osArgs []string) int {
 	root := &cobra.Command{
-		Use: "transerr",
+		Use: "errto",
 	}
 
 	root.AddCommand(

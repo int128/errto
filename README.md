@@ -1,4 +1,4 @@
-# transerr [![CircleCI](https://circleci.com/gh/int128/transerr.svg?style=shield)](https://circleci.com/gh/int128/transerr)
+# errto [![CircleCI](https://circleci.com/gh/int128/errto.svg?style=shield)](https://circleci.com/gh/int128/errto)
 
 This is a command to rewrite Go error handling code between the following packages:
 
@@ -15,13 +15,13 @@ All whitespaces and comments are kept.
 Install the latest release.
 
 ```sh
-go get github.com/int128/transerr
+go get github.com/int128/errto
 ```
 
 Run the following command.
 
 ```
-% transerr rewrite --to=xerrors ./pkg/rewrite/testdata/basic/pkgerrors
+% errto rewrite --to=xerrors ./pkg/rewrite/testdata/basic/pkgerrors
 rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:8:2: import github.com/pkg/errors -> golang.org/x/xerrors
 rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:15:10: pkg/errors.Wrapf() -> xerrors.Errorf()
 rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:19:10: pkg/errors.Errorf() -> xerrors.Errorf()
@@ -78,7 +78,7 @@ Then [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic
 
 ```
 Usage:
-  transerr rewrite [flags] --to=METHOD PACKAGE...
+  errto rewrite [flags] --to=METHOD PACKAGE...
 
 Flags:
       --dry-run     Do not write files actually
@@ -138,7 +138,7 @@ You can dump the AST for debug.
 
 ```
 Usage:
-  transerr dump PACKAGE... [flags]
+  errto dump PACKAGE... [flags]
 ```
 
 

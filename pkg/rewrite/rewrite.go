@@ -4,8 +4,8 @@ import (
 	"context"
 	"go/ast"
 
-	"github.com/int128/transerr/pkg/astio"
-	"github.com/int128/transerr/pkg/log"
+	"github.com/int128/errto/pkg/astio"
+	"github.com/int128/errto/pkg/log"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )

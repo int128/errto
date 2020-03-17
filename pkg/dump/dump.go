@@ -4,7 +4,7 @@ import (
 	"context"
 	"go/ast"
 
-	"github.com/int128/transerr/pkg/astio"
+	"github.com/int128/errto/pkg/astio"
 	"golang.org/x/xerrors"
 )
 

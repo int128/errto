@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/int128/transerr/pkg/log"
-	"github.com/int128/transerr/pkg/rewrite"
+	"github.com/int128/errto/pkg/log"
+	"github.com/int128/errto/pkg/rewrite"
 )
 
 func TestDo(t *testing.T) {

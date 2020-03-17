@@ -1,4 +1,4 @@
-module github.com/int128/transerr
+module github.com/int128/errto
 
 go 1.13
 
