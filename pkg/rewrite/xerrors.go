@@ -1,7 +1,6 @@
 package rewrite
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -119,7 +118,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 		if b.Kind != token.STRING {
 			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
 		}
-		b.Value = fmt.Sprintf(`"%s: %%w"`, strings.Trim(b.Value, `"`))
+		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %w"`
 
 		log.Printf("rewrite: %s: pkg/errors.Wrapf() -> xerrors.Errorf()", p)
 		v.needImport++
