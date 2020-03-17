@@ -3,22 +3,19 @@ package cmd
 import (
 	"github.com/int128/errto/pkg/rewrite"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/xerrors"
 )
 
-func newRewriteCmd() *cobra.Command {
+func newRewriteToGoErrorsCmd() *cobra.Command {
 	var o rewriteOption
 	c := &cobra.Command{
-		Use:   "rewrite [flags] --to=METHOD PACKAGE...",
-		Short: "Rewrite error handling code",
+		Use:   "go-errors [flags] PACKAGE...",
+		Short: "Rewrite the packages with Go errors (fmt, errors)",
 		RunE: func(c *cobra.Command, args []string) error {
-			to, err := o.parseTo()
-			if err != nil {
-				return xerrors.Errorf("rewrite: %w", err)
-			}
 			in := rewrite.Input{
 				PkgNames: args,
-				Target:   to,
+				Target:   rewrite.GoErrors,
 				DryRun:   o.dryRun,
 			}
 			if err := rewrite.Do(c.Context(), in); err != nil {
@@ -27,26 +24,56 @@ func newRewriteCmd() *cobra.Command {
 			return nil
 		},
 	}
-	c.Flags().BoolVar(&o.dryRun, "dry-run", false, "Do not write files actually")
-	c.Flags().StringVar(&o.to, "to", "", "Target error handling method (go-errors|xerrors|pkg-errors)")
+	o.register(c.Flags())
+	return c
+}
+
+func newRewriteToXerrorsCmd() *cobra.Command {
+	var o rewriteOption
+	c := &cobra.Command{
+		Use:   "xerrors [flags] PACKAGE...",
+		Short: "Rewrite the packages with golang.org/x/xerrors",
+		RunE: func(c *cobra.Command, args []string) error {
+			in := rewrite.Input{
+				PkgNames: args,
+				Target:   rewrite.Xerrors,
+				DryRun:   o.dryRun,
+			}
+			if err := rewrite.Do(c.Context(), in); err != nil {
+				return xerrors.Errorf("rewrite: %w", err)
+			}
+			return nil
+		},
+	}
+	o.register(c.Flags())
+	return c
+}
+
+func newRewriteToPkgErrorsCmd() *cobra.Command {
+	var o rewriteOption
+	c := &cobra.Command{
+		Use:   "pkg-errors [flags] PACKAGE...",
+		Short: "Rewrite the packages with github.com/pkg/errors",
+		RunE: func(c *cobra.Command, args []string) error {
+			in := rewrite.Input{
+				PkgNames: args,
+				Target:   rewrite.PkgErrors,
+				DryRun:   o.dryRun,
+			}
+			if err := rewrite.Do(c.Context(), in); err != nil {
+				return xerrors.Errorf("rewrite: %w", err)
+			}
+			return nil
+		},
+	}
+	o.register(c.Flags())
 	return c
 }
 
 type rewriteOption struct {
 	dryRun bool
-	to     string
 }
 
-func (o *rewriteOption) parseTo() (rewrite.Method, error) {
-	switch o.to {
-	case "":
-		return 0, xerrors.New("you need to set --to flag")
-	case "go-errors":
-		return rewrite.GoErrors, nil
-	case "xerrors":
-		return rewrite.Xerrors, nil
-	case "pkg-errors":
-		return rewrite.PkgErrors, nil
-	}
-	return 0, xerrors.Errorf("unknown package %s", o.to)
+func (o *rewriteOption) register(f *pflag.FlagSet) {
+	f.BoolVar(&o.dryRun, "dry-run", false, "Do not write files actually")
 }

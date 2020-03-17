@@ -13,7 +13,9 @@ func Run(ctx context.Context, osArgs []string) int {
 	}
 
 	root.AddCommand(
-		newRewriteCmd(),
+		newRewriteToGoErrorsCmd(),
+		newRewriteToXerrorsCmd(),
+		newRewriteToPkgErrorsCmd(),
 		newDumpCmd(),
 	)
 

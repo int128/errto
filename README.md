@@ -18,32 +18,34 @@ Install the latest release.
 go get github.com/int128/errto
 ```
 
-Run the following command.
+To rewrite package(s) with `golang.org/x/xerrors`:
 
 ```
-% errto rewrite --to=xerrors ./pkg/rewrite/testdata/basic/pkgerrors
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:8:2: import github.com/pkg/errors -> golang.org/x/xerrors
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:15:10: pkg/errors.Wrapf() -> xerrors.Errorf()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:19:10: pkg/errors.Errorf() -> xerrors.Errorf()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:22:10: pkg/errors.New() -> xerrors.New()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:36:33: pkg/errors.Cause() -> xerrors.Unwrap()
-writing 5 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
+% errto xerrors ./pkg/rewrite/testdata/basic/pkgerrors
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:14:10: pkg/errors.Wrapf() -> xerrors.Errorf()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:18:10: pkg/errors.Errorf() -> xerrors.Errorf()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:21:10: pkg/errors.New() -> xerrors.New()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:35:33: pkg/errors.Cause() -> xerrors.Unwrap()
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
+rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
+writing 6 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
 ```
 
-Then [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) will be rewrote as follows:
+It will rewrite [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as follows:
 
 ```patch
 --- a/pkg/rewrite/testdata/basic/pkgerrors/main.go
 +++ b/pkg/rewrite/testdata/basic/pkgerrors/main.go
-@@ -5,21 +5,21 @@ import (
-        "os"
-        "strconv"
+@@ -1,7 +1,7 @@
+ package main
 
+ import (
 -       "github.com/pkg/errors"
 +       "golang.org/x/xerrors"
- )
-
- // check returns nil if s is a positive number.
+        "log"
+        "os"
+        "strconv"
+@@ -11,14 +11,14 @@ import (
  func check(s string) error {
         n, err := strconv.Atoi(s)
         if err != nil {
@@ -61,7 +63,7 @@ Then [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic
         }
         return nil
  }
-@@ -33,6 +33,6 @@ func main() {
+@@ -32,6 +32,6 @@ func main() {
         err := check(os.Args[1])
         log.Printf("err=%+v", err)
         if err != nil {
@@ -74,19 +76,21 @@ Then [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic
 
 ## Usage
 
-### Rewrite command
-
 ```
 Usage:
-  errto rewrite [flags] --to=METHOD PACKAGE...
+  errto [command]
 
-Flags:
-      --dry-run     Do not write files actually
-  -h, --help        help for rewrite
-      --to string   Target error handling method (go-errors|xerrors|pkg-errors)
+Available Commands:
+  dump        Dump AST of packages
+  go-errors   Rewrite the packages with Go errors (fmt, errors)
+  help        Help about any command
+  pkg-errors  Rewrite the packages with github.com/pkg/errors
+  xerrors     Rewrite the packages with golang.org/x/xerrors
 ```
 
-It supports rewriting between the following packages:
+### Rewrite commands
+
+It supports rewriting code between the following packages:
 
 - `errors` (1.13+)
 - `golang.org/x/xerrors`
