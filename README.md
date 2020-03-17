@@ -90,40 +90,25 @@ Available Commands:
 
 ### Rewrite commands
 
-It supports rewriting code between the following packages:
+You can run the following command.
 
-- `errors` (1.13+)
-- `golang.org/x/xerrors`
-- `github.com/pkg/errors`
+- `go-errors`: rewrite with Go errors (1.13+)
+- `xerrors`: rewrite with `golang.org/x/xerrors`
+- `pkg-errors`: rewrite with `github.com/pkg/errors`
 
-The following rewrite rules are supported.
+The following syntax is supported.
 
-- Import the package.
-  - `import "errors"`, `import "fmt"`
-  - `import "golang.org/x/xerrors"`
-  - `import "github.com/pkg/errors"`
-- Create an error.
-  - `errors.New("message")`
-  - `golang.org/x/xerrors.New("message")`
-  - `github.com/pkg/errors.New("message")`
-- Format an error.
-  - `fmt.Errorf("message %s", msg)`
-  - `github.com/pkg/errors.Errorf("message %s", msg)`
-  - `golang.org/x/xerrors.Errorf("message %s", msg)`
-- Wrap an error.
-  - `fmt.Errorf("message %s: %w", msg, err)`
-  - `golang.org/x/xerrors.Errorf("message %s: %w", msg, err)`
-  - `github.com/pkg/errors.Wrapf(err, "message %s", msg)`
-- Unwrap an error.
-  - `errors.Unwrap(err)`
-  - `golang.org/x/xerrors.Unwrap(err)`
-  - `github.com/pkg/errors.Cause(err)`
-- Unwrap and cast an error.
-  - `errors.As(err, v)`
-  - `golang.org/x/xerrors.As(err, v)`
-- Unwrap and test an error.
-  - `errors.Is(err, v)`
-  - `golang.org/x/xerrors.Is(err, v)`
+| go-errors | xerrors | pkg-errors |
+|-----------|---------|------------|
+| `errors.New("MESSAGE")` | `xerrors.New("MESSAGE")` | `errors.New("MESSAGE")` |
+| `fmt.Errorf("%s", s)` | `xerrors.Errorf("%s", s)` | `errors.Errorf("%s", s)` |
+| `fmt.Errorf("MESSAGE: %w", err)` | `xerrors.Errorf("MESSAGE: %w", err)` | `errors.Wrapf(err, "MESSAGE")` |
+| `errors.Unwrap(err)` | `xerrors.Unwrap(err)` | `errors.Cause(err)` <sup>1</sup> |
+| `errors.As(err, v)` | `xerrors.As(err, v)` | - |
+| `errors.Is(err, v)` | `xerrors.Is(err, v)` | - |
+
+<sup>1</sup> Incompatible behavior. You may need to rewrite code manually.
+
 
 ### NOTE: these are not implemented yet
 
