@@ -100,14 +100,19 @@ The following syntax is supported.
 
 | go-errors | xerrors | pkg-errors |
 |-----------|---------|------------|
-| `errors.New("MESSAGE")` | `xerrors.New("MESSAGE")` | `errors.New("MESSAGE")` |
-| `fmt.Errorf("%s", s)` | `xerrors.Errorf("%s", s)` | `errors.Errorf("%s", s)` |
-| `fmt.Errorf("MESSAGE: %w", err)` | `xerrors.Errorf("MESSAGE: %w", err)` | `errors.Wrapf(err, "MESSAGE")` |
-| `errors.Unwrap(err)` | `xerrors.Unwrap(err)` | `errors.Cause(err)` <sup>1</sup> |
-| `errors.As(err, v)` | `xerrors.As(err, v)` | - |
-| `errors.Is(err, v)` | `xerrors.Is(err, v)` | - |
+| `errors.New("MESSAGE")` | `New("MESSAGE")` | `New("MESSAGE")` |
+| `fmt.Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` |
+| `fmt.Errorf("FORMAT: %w", ..., err)` | `Errorf("FORMAT: %w", ..., err)` | `Wrapf(err, "FORMAT", ...)` |
+| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` <sup>1</sup> |
+| `errors.As(err, v)` | `As(err, v)` | - |
+| `errors.Is(err, v)` | `Is(err, v)` | - |
+| - | - | `Wrap(err, "MESSAGE")` <sup>2</sup> |
+| - | - | `WithStack(err)` <sup>2</sup> |
+| - | - | `WithMessage("MESSAGE", err)` <sup>2</sup> |
 
 <sup>1</sup> Incompatible behavior. You may need to rewrite code manually.
+
+<sup>2</sup> Not supported yet.
 
 
 ### NOTE: these are not implemented yet
