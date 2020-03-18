@@ -136,6 +136,76 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 		log.Printf("rewrite: %s: pkg/errors.Cause() -> xerrors.Unwrap()", p)
 		v.needImport++
 		return nil
+
+	case "Wrap":
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Errorf"
+		if len(call.Args) != 2 {
+			return xerrors.Errorf("pkg/errors.Wrap expects 2 arguments but has %d arguments", len(call.Args))
+		}
+		call.Args = []ast.Expr{
+			&ast.BasicLit{Value: `"%s: %w"`},
+			call.Args[1],
+			call.Args[0],
+		}
+		log.Printf("rewrite: %s: pkg/errors.Wrap() -> xerrors.Errorf()", p)
+		v.needImport++
+		return nil
+
+	case "WithStack":
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Errorf"
+		if len(call.Args) != 1 {
+			return xerrors.Errorf("pkg/errors.WithStack expects 1 argument but has %d arguments", len(call.Args))
+		}
+		call.Args = []ast.Expr{
+			&ast.BasicLit{Value: `"%w"`},
+			call.Args[0],
+		}
+		log.Printf("rewrite: %s: pkg/errors.WithStack() -> xerrors.Errorf()", p)
+		v.needImport++
+		return nil
+
+	case "WithMessage":
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Errorf"
+		if len(call.Args) != 2 {
+			return xerrors.Errorf("pkg/errors.WithMessage expects 2 arguments but has %d arguments", len(call.Args))
+		}
+		call.Args = []ast.Expr{
+			&ast.BasicLit{Value: `"%s: %s"`},
+			call.Args[1],
+			call.Args[0],
+		}
+		log.Printf("rewrite: %s: pkg/errors.WithMessage() -> xerrors.Errorf()", p)
+		v.needImport++
+		return nil
+
+	case "WithMessagef":
+		pkg.Name = "xerrors"
+		fun.Sel.Name = "Errorf"
+
+		// reorder the args
+		a := call.Args
+		args := make([]ast.Expr, 0)
+		args = append(args, a[1])
+		args = append(args, a[2:]...)
+		args = append(args, a[0])
+		call.Args = args
+
+		// append %s to the format arg
+		b, ok := a[1].(*ast.BasicLit)
+		if !ok {
+			return xerrors.Errorf("2nd argument of Wrapf must be a literal but %T", a[1])
+		}
+		if b.Kind != token.STRING {
+			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
+		}
+		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %s"`
+
+		log.Printf("rewrite: %s: pkg/errors.WithMessagef() -> xerrors.Errorf()", p)
+		v.needImport++
+		return nil
 	}
 
 	pkg.Name = "xerrors"
