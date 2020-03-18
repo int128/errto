@@ -1,6 +1,7 @@
 package rewrite
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -10,7 +11,6 @@ import (
 	"github.com/int128/errto/pkg/log"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
-	"golang.org/x/xerrors"
 )
 
 type toXerrors struct{}
@@ -18,7 +18,7 @@ type toXerrors struct{}
 func (t *toXerrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
 	var v toXerrorsVisitor
 	if err := astio.Inspect(pkg, file, &v); err != nil {
-		return 0, xerrors.Errorf("could not inspect the file: %w", err)
+		return 0, fmt.Errorf("could not inspect the file: %w", err)
 	}
 	if v.needImport == 0 {
 		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
@@ -104,10 +104,10 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 		// append %w to the format arg
 		b, ok := call.Args[1].(*ast.BasicLit)
 		if !ok {
-			return xerrors.Errorf("%s: 2nd argument of Wrapf must be a literal but was %T", p, call.Args[1])
+			return fmt.Errorf("%s: 2nd argument of Wrapf must be a literal but was %T", p, call.Args[1])
 		}
 		if b.Kind != token.STRING {
-			return xerrors.Errorf("%s: 2nd argument of Wrapf must be a string but was %s", p, b.Kind)
+			return fmt.Errorf("%s: 2nd argument of Wrapf must be a string but was %s", p, b.Kind)
 		}
 		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %w"`
 
@@ -134,7 +134,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 
 	case "Wrap":
 		if len(call.Args) != 2 {
-			return xerrors.Errorf("%s: errors.Wrap expects 2 arguments but has %d arguments", p, len(call.Args))
+			return fmt.Errorf("%s: errors.Wrap expects 2 arguments but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%s: %w"`},
@@ -147,7 +147,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 
 	case "WithStack":
 		if len(call.Args) != 1 {
-			return xerrors.Errorf("%s: errors.WithStack expects 1 argument but has %d arguments", p, len(call.Args))
+			return fmt.Errorf("%s: errors.WithStack expects 1 argument but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%w"`},
@@ -159,7 +159,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 
 	case "WithMessage":
 		if len(call.Args) != 2 {
-			return xerrors.Errorf("%s: errors.WithMessage expects 2 arguments but has %d arguments", p, len(call.Args))
+			return fmt.Errorf("%s: errors.WithMessage expects 2 arguments but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%s: %s"`},
@@ -174,10 +174,10 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 		// append %s to the format arg
 		b, ok := call.Args[1].(*ast.BasicLit)
 		if !ok {
-			return xerrors.Errorf("%s: 2nd argument of WithMessagef must be a literal but %T", p, call.Args[1])
+			return fmt.Errorf("%s: 2nd argument of WithMessagef must be a literal but %T", p, call.Args[1])
 		}
 		if b.Kind != token.STRING {
-			return xerrors.Errorf("%s: 2nd argument of WithMessagef must be a string but %s", p, b.Kind)
+			return fmt.Errorf("%s: 2nd argument of WithMessagef must be a string but %s", p, b.Kind)
 		}
 		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %s"`
 

@@ -1,6 +1,7 @@
 package rewrite
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -10,7 +11,6 @@ import (
 	"github.com/int128/errto/pkg/log"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
-	"golang.org/x/xerrors"
 )
 
 type toPkgErrors struct{}
@@ -18,7 +18,7 @@ type toPkgErrors struct{}
 func (t *toPkgErrors) Transform(pkg *packages.Package, file *ast.File) (int, error) {
 	var v toPkgErrorsVisitor
 	if err := astio.Inspect(pkg, file, &v); err != nil {
-		return 0, xerrors.Errorf("could not inspect the file: %w", err)
+		return 0, fmt.Errorf("could not inspect the file: %w", err)
 	}
 	if v.needImport == 0 {
 		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
@@ -133,10 +133,10 @@ func replaceErrorfWithPkgErrors(p token.Position, call *ast.CallExpr, pkg *ast.I
 	}
 	b, ok := call.Args[0].(*ast.BasicLit)
 	if !ok {
-		return xerrors.Errorf("%s: 1st argument of Errorf must be a literal but %T", p, call.Args[0])
+		return fmt.Errorf("%s: 1st argument of Errorf must be a literal but %T", p, call.Args[0])
 	}
 	if b.Kind != token.STRING {
-		return xerrors.Errorf("%s: 1st argument of Errorf must be a string but %s", p, b.Kind)
+		return fmt.Errorf("%s: 1st argument of Errorf must be a string but %s", p, b.Kind)
 	}
 	if !strings.HasSuffix(b.Value, `: %w"`) {
 		replacePackageFunctionCall(p, pkg, fun, "errors", "Errorf")

@@ -2,9 +2,9 @@ package astio
 
 import (
 	"context"
+	"fmt"
 
 	"golang.org/x/tools/go/packages"
-	"golang.org/x/xerrors"
 )
 
 func Load(ctx context.Context, pkgNames ...string) ([]*packages.Package, error) {
@@ -14,10 +14,10 @@ func Load(ctx context.Context, pkgNames ...string) ([]*packages.Package, error) 
 	}
 	pkgs, err := packages.Load(cfg, pkgNames...)
 	if err != nil {
-		return nil, xerrors.Errorf("load error: %w", err)
+		return nil, fmt.Errorf("load error: %w", err)
 	}
 	if n := packages.PrintErrors(pkgs); n > 0 {
-		return nil, xerrors.Errorf("load error")
+		return nil, fmt.Errorf("load error")
 	}
 	return pkgs, nil
 }

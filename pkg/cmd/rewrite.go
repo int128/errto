@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/int128/errto/pkg/rewrite"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"golang.org/x/xerrors"
 )
 
 func newRewriteToGoErrorsCmd() *cobra.Command {
@@ -19,7 +20,7 @@ func newRewriteToGoErrorsCmd() *cobra.Command {
 				DryRun:   o.dryRun,
 			}
 			if err := rewrite.Do(c.Context(), in); err != nil {
-				return xerrors.Errorf("rewrite: %w", err)
+				return fmt.Errorf("rewrite: %w", err)
 			}
 			return nil
 		},
@@ -40,7 +41,7 @@ func newRewriteToXerrorsCmd() *cobra.Command {
 				DryRun:   o.dryRun,
 			}
 			if err := rewrite.Do(c.Context(), in); err != nil {
-				return xerrors.Errorf("rewrite: %w", err)
+				return fmt.Errorf("rewrite: %w", err)
 			}
 			return nil
 		},
@@ -61,7 +62,7 @@ func newRewriteToPkgErrorsCmd() *cobra.Command {
 				DryRun:   o.dryRun,
 			}
 			if err := rewrite.Do(c.Context(), in); err != nil {
-				return xerrors.Errorf("rewrite: %w", err)
+				return fmt.Errorf("rewrite: %w", err)
 			}
 			return nil
 		},
