@@ -103,27 +103,16 @@ The following syntax is supported.
 | `errors.New("MESSAGE")` | `New("MESSAGE")` | `New("MESSAGE")` |
 | `fmt.Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` |
 | `fmt.Errorf("FORMAT: %w", ..., err)` | `Errorf("FORMAT: %w", ..., err)` | `Wrapf(err, "FORMAT", ...)` |
-| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` <sup>1</sup> |
+| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` |
 | `errors.As(err, v)` | `As(err, v)` | - |
 | `errors.Is(err, v)` | `Is(err, v)` | - |
-| - | - | `Wrap(err, "MESSAGE")` <sup>2</sup> |
-| - | - | `WithStack(err)` <sup>2</sup> |
-| - | - | `WithMessage("MESSAGE", err)` <sup>2</sup> |
+| `fmt.Errorf("%s: %w", "MESSAGE", err)` | `Errorf("%s: %w", "MESSAGE", err)` | `Wrap(err, "MESSAGE")` <sup>1</sup> |
+| `fmt.Errorf("%w", err)` | `Errorf("%w", err)` | `WithStack(err)` <sup>1</sup> |
+| `fmt.Errorf("%s: %s", "MESSAGE", err)` | `Errorf("%s: %s", "MESSAGE", err)` | `WithMessage(err, "MESSAGE")` <sup>1</sup> |
+| `fmt.Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` <sup>1</sup> |
 
-<sup>1</sup> Incompatible behavior. You may need to rewrite code manually.
-
-<sup>2</sup> Not supported yet.
-
-
-### NOTE: these are not implemented yet
-
-Functions:
-
-- `golang.org/x/xerrors.Opaque()`
-- `github.com/pkg/errors.Wrap()`
-- `github.com/pkg/errors.WithStack()`
-- `github.com/pkg/errors.WithMessage()`
-- `github.com/pkg/errors.WithMessagef()`
+<sup>1</sup> Only rewrite from pkg-errors to go-errors or xerrors is supported.
+Opposite rewrite is not supported.
 
 
 ### Dump command

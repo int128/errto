@@ -64,6 +64,19 @@ func TestDo(t *testing.T) {
 			testRewrite(t, ctx, rewrite.GoErrors, "testdata/full/xerrors/main.go", "testdata/full/goerrors/main.go")
 		})
 	})
+
+	t.Run("pkg-errors specific functions", func(t *testing.T) {
+		t.Run("pkg-errors to xerrors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.Xerrors, "testdata/pkgerrors_specific/pkgerrors/main.go", "testdata/pkgerrors_specific/xerrors/main.go")
+		})
+		t.Run("pkg-errors to go-errors", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			testRewrite(t, ctx, rewrite.GoErrors, "testdata/pkgerrors_specific/pkgerrors/main.go", "testdata/pkgerrors_specific/goerrors/main.go")
+		})
+	})
 }
 
 func testRewrite(t *testing.T, ctx context.Context, target rewrite.Method, fixtureFilename, wantFilename string) {
