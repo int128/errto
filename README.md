@@ -6,7 +6,7 @@ This is a command to rewrite Go error handling code between the following packag
 - `golang.org/x/xerrors`
 - `github.com/pkg/errors`
 
-It rewrites the package imports and package function calls using AST transformation.
+It rewrites the package imports and function calls using AST transformation.
 All whitespaces and comments are kept.
 
 
@@ -90,7 +90,7 @@ Available Commands:
 
 ### Rewrite commands
 
-You can run the following command.
+You can run the following commands.
 
 - `go-errors`: rewrite with Go errors (1.13+)
 - `xerrors`: rewrite with `golang.org/x/xerrors`
@@ -103,7 +103,7 @@ The following syntax is supported.
 | `errors.New("MESSAGE")` | `New("MESSAGE")` | `New("MESSAGE")` |
 | `fmt.Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` |
 | `fmt.Errorf("FORMAT: %w", ..., err)` | `Errorf("FORMAT: %w", ..., err)` | `Wrapf(err, "FORMAT", ...)` |
-| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` |
+| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` <sup>2</sup> |
 | `errors.As(err, v)` | `As(err, v)` | - |
 | `errors.Is(err, v)` | `Is(err, v)` | - |
 | `fmt.Errorf("%s: %w", "MESSAGE", err)` | `Errorf("%s: %w", "MESSAGE", err)` | `Wrap(err, "MESSAGE")` <sup>1</sup> |
@@ -111,18 +111,9 @@ The following syntax is supported.
 | `fmt.Errorf("%s: %s", "MESSAGE", err)` | `Errorf("%s: %s", "MESSAGE", err)` | `WithMessage(err, "MESSAGE")` <sup>1</sup> |
 | `fmt.Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` <sup>1</sup> |
 
-<sup>1</sup> Only rewrite from pkg-errors to go-errors or xerrors is supported.
-Opposite rewrite is not supported.
+<sup>1</sup> Only rewriting from pkg-errors to go-errors or xerrors is supported. Opposite is not supported.
 
-
-### Dump command
-
-You can dump the AST for debug.
-
-```
-Usage:
-  errto dump PACKAGE... [flags]
-```
+<sup>2</sup> Compatible with Go errors since v0.9.0. See [the release note](https://github.com/pkg/errors/releases/tag/v0.9.0) for details.
 
 
 ## Contributions
