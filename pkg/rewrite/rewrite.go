@@ -2,11 +2,9 @@ package rewrite
 
 import (
 	"context"
-	"go/ast"
 
 	"github.com/int128/errto/pkg/astio"
 	"github.com/int128/errto/pkg/log"
-	"golang.org/x/tools/go/packages"
 	"golang.org/x/xerrors"
 )
 
@@ -59,22 +57,6 @@ func Do(ctx context.Context, in Input) error {
 				}
 			}
 		}
-	}
-	return nil
-}
-
-type Transformer interface {
-	Transform(pkg *packages.Package, file *ast.File) (int, error)
-}
-
-func newTransformer(m Method) Transformer {
-	switch m {
-	case Xerrors:
-		return &toXerrors{}
-	case GoErrors:
-		return &toGoErrors{}
-	case PkgErrors:
-		return &toPkgErrors{}
 	}
 	return nil
 }

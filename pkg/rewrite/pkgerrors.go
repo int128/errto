@@ -69,22 +69,22 @@ func (v *toPkgErrorsVisitor) PackageFunctionCall(p token.Position, call *ast.Cal
 	return nil
 }
 
-func (v *toPkgErrorsVisitor) goErrorsFunctionCall(p token.Position, _ *ast.CallExpr, _ *ast.Ident, fun *ast.SelectorExpr) error {
+func (v *toPkgErrorsVisitor) goErrorsFunctionCall(p token.Position, _ *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "New":
-		log.Printf("rewrite: %s: errors.%s() -> pkg/errors.%s()", p, functionName, functionName)
+		replacePackageFunctionCall(p, pkg, fun, "errors", "")
 		v.needImport++
 		return nil
 
 	case "Unwrap":
-		log.Printf("rewrite: %s: errors.Unwrap() -> pkg/errors.Cause()", p)
-		fun.Sel.Name = "Cause"
+		replacePackageFunctionCall(p, pkg, fun, "errors", "Cause")
 		v.needImport++
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite errors.%s() -> pkg/errors", p, functionName)
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	pkg.Name = "errors"
 	v.needImport++
 	return nil
 }
@@ -93,9 +93,8 @@ func (v *toPkgErrorsVisitor) goFmtFunctionCall(p token.Position, call *ast.CallE
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Errorf":
-		pkg.Name = "errors"
 		v.needImport++
-		return errorfFromGoErrorsToPkgErrors(p, call, pkg, fun)
+		return replaceErrorfWithPkgErrors(p, call, pkg, fun)
 	}
 	return nil
 }
@@ -104,67 +103,58 @@ func (v *toPkgErrorsVisitor) xerrorsFunctionCall(p token.Position, call *ast.Cal
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "New":
-		log.Printf("rewrite: %s: xerrors.%s() -> pkg/errors.%s()", p, functionName, functionName)
-		pkg.Name = "errors"
+		replacePackageFunctionCall(p, pkg, fun, "errors", "New")
 		v.needImport++
 		return nil
 
 	case "Errorf":
-		log.Printf("rewrite: %s: xerrors.%s() -> pkg/errors.%s()", p, functionName, functionName)
-		pkg.Name = "errors"
 		v.needImport++
-		return errorfFromGoErrorsToPkgErrors(p, call, pkg, fun)
+		return replaceErrorfWithPkgErrors(p, call, pkg, fun)
 
 	case "Unwrap":
-		log.Printf("rewrite: %s: xerrors.Unwrap() -> pkg/errors.Cause()", p)
-		pkg.Name = "errors"
-		fun.Sel.Name = "Cause"
+		replacePackageFunctionCall(p, pkg, fun, "errors", "Cause")
 		v.needImport++
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite xerrors.%s() -> pkg/errors", p, functionName)
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "errors"
 	v.needImport++
 	return nil
 }
 
-// errorfFromGoErrorsToPkgErrors rewrites the Errorf function call
+// replaceErrorfWithPkgErrors rewrites the Errorf function call
 // from fmt.Errorf() or xerrors.Errorf() to pkg/errors.Errorf().
 // If the Errorf wraps an error, it rewrites to pkg/errors.Wrapf().
-func errorfFromGoErrorsToPkgErrors(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
-	a := call.Args
-	if len(a) < 2 {
-		log.Printf("rewrite: %s: %s.Errorf() -> pkg/errors.Errorf()", p, pkg.Name)
+func replaceErrorfWithPkgErrors(p token.Position, call *ast.CallExpr, pkg *ast.Ident, fun *ast.SelectorExpr) error {
+	if len(call.Args) < 2 {
+		replacePackageFunctionCall(p, pkg, fun, "errors", "Errorf")
 		return nil
 	}
-
-	// check if Errorf wraps an error
-	b, ok := a[0].(*ast.BasicLit)
+	b, ok := call.Args[0].(*ast.BasicLit)
 	if !ok {
-		return xerrors.Errorf("1st argument of Errorf must be a literal but %T", a[0])
+		return xerrors.Errorf("%s: 1st argument of Errorf must be a literal but %T", p, call.Args[0])
 	}
 	if b.Kind != token.STRING {
-		return xerrors.Errorf("1st argument of Errorf must be a string but %s", b.Kind)
+		return xerrors.Errorf("%s: 1st argument of Errorf must be a string but %s", p, b.Kind)
 	}
 	if !strings.HasSuffix(b.Value, `: %w"`) {
-		log.Printf("rewrite: %s: %s.Errorf(...) -> pkg/errors.Errorf(...)", p, pkg.Name)
+		replacePackageFunctionCall(p, pkg, fun, "errors", "Errorf")
 		return nil
 	}
 
-	log.Printf("rewrite: %s: %s.Errorf(..., err) -> pkg/errors.Wrapf(err, ...)", p, pkg.Name)
-	fun.Sel.Name = "Wrapf"
-
-	// trim the suffix
+	// trim the suffix `: %w`
 	b.Value = strings.TrimSuffix(b.Value, `: %w"`) + `"`
 
-	// reorder args
-	args := make([]ast.Expr, 0)
-	args = append(args, a[len(a)-1])
-	args = append(args, a[0])
-	if len(a) > 2 {
-		args = append(args, a[1:len(a)-2]...)
+	// reorder the args
+	var args []ast.Expr
+	args = append(args, call.Args[len(call.Args)-1])
+	args = append(args, call.Args[0])
+	if len(call.Args) > 2 {
+		args = append(args, call.Args[1:len(call.Args)-2]...)
 	}
 	call.Args = args
+
+	replacePackageFunctionCall(p, pkg, fun, "errors", "Wrapf")
 	return nil
 }

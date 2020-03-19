@@ -75,11 +75,14 @@ func (v *toXerrorsVisitor) goErrorsFunctionCall(p token.Position, _ *ast.CallExp
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "New", "Unwrap", "As", "Is":
-		log.Printf("rewrite: %s: errors.%s() -> xerrors.%s()", p, functionName, functionName)
-		pkg.Name = "xerrors"
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "")
 		v.needImport++
 		return nil
 	}
+
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	pkg.Name = "xerrors"
+	v.needImport++
 	return nil
 }
 
@@ -87,8 +90,7 @@ func (v *toXerrorsVisitor) goFmtFunctionCall(p token.Position, _ *ast.CallExpr, 
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Errorf":
-		log.Printf("rewrite: %s: fmt.Errorf() -> xerrors.Errorf()", p)
-		pkg.Name = "xerrors"
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "")
 		v.needImport++
 		return nil
 	}
@@ -99,117 +101,100 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 	functionName := fun.Sel.Name
 	switch functionName {
 	case "Wrapf":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Errorf"
-
-		// reorder the args
-		a := call.Args
-		args := make([]ast.Expr, 0)
-		args = append(args, a[1])
-		args = append(args, a[2:]...)
-		args = append(args, a[0])
-		call.Args = args
-
 		// append %w to the format arg
-		b, ok := a[1].(*ast.BasicLit)
+		b, ok := call.Args[1].(*ast.BasicLit)
 		if !ok {
-			return xerrors.Errorf("2nd argument of Wrapf must be a literal but %T", a[1])
+			return xerrors.Errorf("%s: 2nd argument of Wrapf must be a literal but was %T", p, call.Args[1])
 		}
 		if b.Kind != token.STRING {
-			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
+			return xerrors.Errorf("%s: 2nd argument of Wrapf must be a string but was %s", p, b.Kind)
 		}
 		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %w"`
 
-		log.Printf("rewrite: %s: pkg/errors.Wrapf() -> xerrors.Errorf()", p)
+		// reorder the args
+		var args []ast.Expr
+		args = append(args, call.Args[1])
+		args = append(args, call.Args[2:]...)
+		args = append(args, call.Args[0])
+		call.Args = args
+
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Errorf")
 		v.needImport++
 		return nil
 
 	case "Errorf", "New":
-		pkg.Name = "xerrors"
-		log.Printf("rewrite: %s: pkg/errors.%s() -> xerrors.%s()", p, functionName, functionName)
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "")
 		v.needImport++
 		return nil
 
 	case "Cause":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Unwrap"
-		log.Printf("rewrite: %s: pkg/errors.Cause() -> xerrors.Unwrap()", p)
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Unwrap")
 		v.needImport++
 		return nil
 
 	case "Wrap":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Errorf"
 		if len(call.Args) != 2 {
-			return xerrors.Errorf("pkg/errors.Wrap expects 2 arguments but has %d arguments", len(call.Args))
+			return xerrors.Errorf("%s: errors.Wrap expects 2 arguments but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%s: %w"`},
 			call.Args[1],
 			call.Args[0],
 		}
-		log.Printf("rewrite: %s: pkg/errors.Wrap() -> xerrors.Errorf()", p)
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Errorf")
 		v.needImport++
 		return nil
 
 	case "WithStack":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Errorf"
 		if len(call.Args) != 1 {
-			return xerrors.Errorf("pkg/errors.WithStack expects 1 argument but has %d arguments", len(call.Args))
+			return xerrors.Errorf("%s: errors.WithStack expects 1 argument but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%w"`},
 			call.Args[0],
 		}
-		log.Printf("rewrite: %s: pkg/errors.WithStack() -> xerrors.Errorf()", p)
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Errorf")
 		v.needImport++
 		return nil
 
 	case "WithMessage":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Errorf"
 		if len(call.Args) != 2 {
-			return xerrors.Errorf("pkg/errors.WithMessage expects 2 arguments but has %d arguments", len(call.Args))
+			return xerrors.Errorf("%s: errors.WithMessage expects 2 arguments but has %d arguments", p, len(call.Args))
 		}
 		call.Args = []ast.Expr{
 			&ast.BasicLit{Value: `"%s: %s"`},
 			call.Args[1],
 			call.Args[0],
 		}
-		log.Printf("rewrite: %s: pkg/errors.WithMessage() -> xerrors.Errorf()", p)
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Errorf")
 		v.needImport++
 		return nil
 
 	case "WithMessagef":
-		pkg.Name = "xerrors"
-		fun.Sel.Name = "Errorf"
-
-		// reorder the args
-		a := call.Args
-		args := make([]ast.Expr, 0)
-		args = append(args, a[1])
-		args = append(args, a[2:]...)
-		args = append(args, a[0])
-		call.Args = args
-
 		// append %s to the format arg
-		b, ok := a[1].(*ast.BasicLit)
+		b, ok := call.Args[1].(*ast.BasicLit)
 		if !ok {
-			return xerrors.Errorf("2nd argument of Wrapf must be a literal but %T", a[1])
+			return xerrors.Errorf("%s: 2nd argument of WithMessagef must be a literal but %T", p, call.Args[1])
 		}
 		if b.Kind != token.STRING {
-			return xerrors.Errorf("2nd argument of Wrapf must be a string but %s", b.Kind)
+			return xerrors.Errorf("%s: 2nd argument of WithMessagef must be a string but %s", p, b.Kind)
 		}
 		b.Value = strings.TrimSuffix(b.Value, `"`) + `: %s"`
 
-		log.Printf("rewrite: %s: pkg/errors.WithMessagef() -> xerrors.Errorf()", p)
+		// reorder the args
+		var args []ast.Expr
+		args = append(args, call.Args[1])
+		args = append(args, call.Args[2:]...)
+		args = append(args, call.Args[0])
+		call.Args = args
+
+		replacePackageFunctionCall(p, pkg, fun, "xerrors", "Errorf")
 		v.needImport++
 		return nil
 	}
 
+	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "xerrors"
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite pkg/errors.%s() -> xerrors", p, functionName)
 	v.needImport++
 	return nil
 }
