@@ -21,7 +21,6 @@ func (t *toGoErrors) Transform(pkg *packages.Package, file *ast.File) (int, erro
 		return 0, fmt.Errorf("could not inspect the file: %w", err)
 	}
 	if v.needImportFmt == 0 && v.needImportErrors == 0 {
-		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
 		return 0, nil
 	}
 	n := t.replaceImports(pkg, file, v.needImportFmt, v.needImportErrors)
@@ -33,22 +32,22 @@ func (*toGoErrors) replaceImports(pkg *packages.Package, file *ast.File, needImp
 	if needImportFmt > 0 {
 		if astutil.AddImport(pkg.Fset, file, "fmt") {
 			n++
-			log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), "fmt")
+			log.Printf("%s: + import %s", astio.Filename(pkg, file), "fmt")
 		}
 	}
 	if needImportErrors > 0 {
 		if astutil.AddImport(pkg.Fset, file, "errors") {
 			n++
-			log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), "errors")
+			log.Printf("%s: + import %s", astio.Filename(pkg, file), "errors")
 		}
 	}
 	if astutil.DeleteImport(pkg.Fset, file, xerrorsImportPath) {
 		n++
-		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), xerrorsImportPath)
+		log.Printf("%s: - import %s", astio.Filename(pkg, file), xerrorsImportPath)
 	}
 	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
 		n++
-		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
+		log.Printf("%s: - import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
 	}
 	if n > 0 {
 		ast.SortImports(pkg.Fset, file)
@@ -173,7 +172,7 @@ func (v *toGoErrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Ca
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	log.Printf("%s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "errors"
 	v.needImportErrors++
 	return nil
@@ -193,7 +192,7 @@ func (v *toGoErrorsVisitor) xerrorsFunctionCall(p token.Position, pkg *ast.Ident
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	log.Printf("%s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "errors"
 	v.needImportErrors++
 	return nil
