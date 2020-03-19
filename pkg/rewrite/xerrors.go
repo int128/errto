@@ -21,7 +21,6 @@ func (t *toXerrors) Transform(pkg *packages.Package, file *ast.File) (int, error
 		return 0, fmt.Errorf("could not inspect the file: %w", err)
 	}
 	if v.needImport == 0 {
-		log.Printf("rewrite: %s: no change", astio.Filename(pkg, file))
 		return 0, nil
 	}
 	n := t.replaceImports(pkg, file)
@@ -32,20 +31,20 @@ func (*toXerrors) replaceImports(pkg *packages.Package, file *ast.File) int {
 	var n int
 	if astutil.AddImport(pkg.Fset, file, xerrorsImportPath) {
 		n++
-		log.Printf("rewrite: %s: + import %s", astio.Filename(pkg, file), xerrorsImportPath)
+		log.Printf("%s: + import %s", astio.Filename(pkg, file), xerrorsImportPath)
 	}
 	if astutil.DeleteImport(pkg.Fset, file, pkgErrorsImportPath) {
 		n++
-		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
+		log.Printf("%s: - import %s", astio.Filename(pkg, file), pkgErrorsImportPath)
 	}
 	if astutil.DeleteImport(pkg.Fset, file, "errors") {
 		n++
-		log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), "errors")
+		log.Printf("%s: - import %s", astio.Filename(pkg, file), "errors")
 	}
 	if !astutil.UsesImport(file, "fmt") {
 		if astutil.DeleteImport(pkg.Fset, file, "fmt") {
 			n++
-			log.Printf("rewrite: %s: - import %s", astio.Filename(pkg, file), "fmt")
+			log.Printf("%s: - import %s", astio.Filename(pkg, file), "fmt")
 		}
 	}
 	if n > 0 {
@@ -80,7 +79,7 @@ func (v *toXerrorsVisitor) goErrorsFunctionCall(p token.Position, _ *ast.CallExp
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	log.Printf("%s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "xerrors"
 	v.needImport++
 	return nil
@@ -193,7 +192,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(p token.Position, call *ast.Cal
 		return nil
 	}
 
-	log.Printf("rewrite: %s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
+	log.Printf("%s: NOTE: you need to manually rewrite %s.%s()", p, pkg.Name, functionName)
 	pkg.Name = "xerrors"
 	v.needImport++
 	return nil

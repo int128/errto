@@ -48,11 +48,12 @@ func Do(ctx context.Context, in Input) error {
 				return fmt.Errorf("could not rewrite the file: %w", err)
 			}
 			if n == 0 {
+				log.Printf("--- no change in %s", astio.Filename(pkg, file))
 				continue
 			}
 			if !in.DryRun {
 				p := astio.Position(pkg, file)
-				log.Printf("writing %d change(s) to %s", n, p.Filename)
+				log.Printf("--- writing %d change(s) to %s", n, p.Filename)
 				if err := astio.Write(pkg, file); err != nil {
 					return fmt.Errorf("could not write the file: %w", err)
 				}

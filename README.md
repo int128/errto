@@ -22,13 +22,13 @@ To rewrite package(s) with `golang.org/x/xerrors`:
 
 ```
 % errto xerrors ./pkg/rewrite/testdata/basic/pkgerrors
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:14:10: pkg/errors.Wrapf() -> xerrors.Errorf()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:18:10: pkg/errors.Errorf() -> xerrors.Errorf()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:21:10: pkg/errors.New() -> xerrors.New()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go:35:33: pkg/errors.Cause() -> xerrors.Unwrap()
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
-rewrite: pkg/rewrite/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
-writing 6 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
+pkg/rewrite/testdata/basic/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
+pkg/rewrite/testdata/basic/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
+pkg/rewrite/testdata/basic/pkgerrors/main.go:21:10: errors.New() -> xerrors.New()
+pkg/rewrite/testdata/basic/pkgerrors/main.go:35:33: errors.Cause() -> xerrors.Unwrap()
+pkg/rewrite/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
+pkg/rewrite/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
+--- writing 6 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
 ```
 
 It will rewrite [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as follows:

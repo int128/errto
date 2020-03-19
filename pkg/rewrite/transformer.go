@@ -28,7 +28,7 @@ func replacePackageFunctionCall(p token.Position, pkg *ast.Ident, fun *ast.Selec
 	if newFunName == "" {
 		newFunName = fun.Sel.Name
 	}
-	log.Printf("rewrite: %s: %s.%s() -> %s.%s()", p, pkg.Name, fun.Sel.Name, newPkgName, newFunName)
+	log.Printf("%s: %s.%s() -> %s.%s()", p, pkg.Name, fun.Sel.Name, newPkgName, newFunName)
 	pkg.Name = newPkgName
 	fun.Sel.Name = newFunName
 }
