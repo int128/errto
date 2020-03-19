@@ -18,9 +18,22 @@ Install the latest release.
 go get github.com/int128/errto
 ```
 
-To rewrite package(s) with `golang.org/x/xerrors`:
+You can rewrite the packages in the current working directory.
 
+```sh
+# rewrite with Go 1.13+ errors
+errto go-errors ./...
+
+# rewrite with golang.org/x/xerrors
+errto xerrors ./...
+
+# rewrite with github.com/pkg/errors
+errto pkg-errors ./...
 ```
+
+For example, to rewrite package `pkg/rewrite/testdata/basic/pkgerrors` in this repository:
+
+```console
 % errto xerrors ./pkg/rewrite/testdata/basic/pkgerrors
 pkg/rewrite/testdata/basic/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
 pkg/rewrite/testdata/basic/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
@@ -31,7 +44,7 @@ pkg/rewrite/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
 --- writing 6 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
 ```
 
-It will rewrite [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as follows:
+It will rewrite [`main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as follows:
 
 ```patch
 --- a/pkg/rewrite/testdata/basic/pkgerrors/main.go
@@ -73,6 +86,8 @@ It will rewrite [`pkg/rewrite/testdata/basic/pkgerrors/main.go`](pkg/rewrite/tes
  }
 ```
 
+It is recommended to commit files into a Git repository before running errto command.
+
 
 ## Usage
 
@@ -89,12 +104,6 @@ Available Commands:
 ```
 
 ### Rewrite commands
-
-You can run the following commands.
-
-- `go-errors`: rewrite with Go errors (1.13+)
-- `xerrors`: rewrite with `golang.org/x/xerrors`
-- `pkg-errors`: rewrite with `github.com/pkg/errors`
 
 The following syntax is supported.
 
