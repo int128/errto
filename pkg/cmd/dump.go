@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/int128/errto/pkg/dump"
 	"github.com/spf13/cobra"
-	"golang.org/x/xerrors"
 )
 
 func newDumpCmd() *cobra.Command {
@@ -12,7 +13,7 @@ func newDumpCmd() *cobra.Command {
 		Short: "Dump AST of packages",
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := dump.Do(c.Context(), args...); err != nil {
-				return xerrors.Errorf("could not dump the packages: %w", err)
+				return fmt.Errorf("could not dump the packages: %w", err)
 			}
 			return nil
 		},

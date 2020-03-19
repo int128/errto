@@ -2,10 +2,11 @@ package rewrite
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/int128/errto/pkg/astio"
 	"github.com/int128/errto/pkg/log"
-	"golang.org/x/xerrors"
 )
 
 type Method int
@@ -31,20 +32,20 @@ type Input struct {
 func Do(ctx context.Context, in Input) error {
 	pkgs, err := astio.Load(ctx, in.PkgNames...)
 	if err != nil {
-		return xerrors.Errorf("could not load the packages: %w", err)
+		return fmt.Errorf("could not load the packages: %w", err)
 	}
 	if len(pkgs) == 0 {
-		return xerrors.New("no package found")
+		return errors.New("no package found")
 	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
 			t := newTransformer(in.Target)
 			if t == nil {
-				return xerrors.Errorf("unknown target method %v", in.Target)
+				return fmt.Errorf("unknown target method %v", in.Target)
 			}
 			n, err := t.Transform(pkg, file)
 			if err != nil {
-				return xerrors.Errorf("could not rewrite the file: %w", err)
+				return fmt.Errorf("could not rewrite the file: %w", err)
 			}
 			if n == 0 {
 				continue
@@ -53,7 +54,7 @@ func Do(ctx context.Context, in Input) error {
 				p := astio.Position(pkg, file)
 				log.Printf("writing %d change(s) to %s", n, p.Filename)
 				if err := astio.Write(pkg, file); err != nil {
-					return xerrors.Errorf("could not write the file: %w", err)
+					return fmt.Errorf("could not write the file: %w", err)
 				}
 			}
 		}
