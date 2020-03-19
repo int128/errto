@@ -2,8 +2,8 @@ package rewrite
 
 import (
 	"go/ast"
-	"go/token"
 
+	"github.com/int128/errto/pkg/astio"
 	"github.com/int128/errto/pkg/log"
 	"golang.org/x/tools/go/packages"
 )
@@ -24,11 +24,11 @@ func newTransformer(m Method) Transformer {
 	return nil
 }
 
-func replacePackageFunctionCall(p token.Position, pkg *ast.Ident, fun *ast.SelectorExpr, newPkgName, newFunName string) {
+func replacePackageFunctionCall(call astio.PackageFunctionCall, newPkgName, newFunName string) {
 	if newFunName == "" {
-		newFunName = fun.Sel.Name
+		newFunName = call.FunctionName()
 	}
-	log.Printf("%s: %s.%s() -> %s.%s()", p, pkg.Name, fun.Sel.Name, newPkgName, newFunName)
-	pkg.Name = newPkgName
-	fun.Sel.Name = newFunName
+	log.Printf("%s: %s.%s() -> %s.%s()", call.Position, call.TargetPkg.Name, call.FunctionName(), newPkgName, newFunName)
+	call.TargetPkg.Name = newPkgName
+	call.TargetFun.Sel.Name = newFunName
 }

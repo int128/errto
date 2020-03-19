@@ -9,7 +9,31 @@ import (
 )
 
 type Visitor interface {
-	PackageFunctionCall(p token.Position, call *ast.CallExpr, pkg *ast.Ident, resolvedPkgName *types.PkgName, fun *ast.SelectorExpr) error
+	PackageFunctionCall(call PackageFunctionCall) error
+}
+
+type PackageFunctionCall struct {
+	Position      token.Position
+	Call          *ast.CallExpr
+	TargetPkg     *ast.Ident
+	TargetPkgName *types.PkgName
+	TargetFun     *ast.SelectorExpr
+}
+
+func (call *PackageFunctionCall) PackagePath() string {
+	return call.TargetPkgName.Imported().Path()
+}
+
+func (call *PackageFunctionCall) FunctionName() string {
+	return call.TargetFun.Sel.Name
+}
+
+func (call *PackageFunctionCall) Args() []ast.Expr {
+	return call.Call.Args
+}
+
+func (call *PackageFunctionCall) SetArgs(args []ast.Expr) {
+	call.Call.Args = args
 }
 
 func Inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
@@ -24,7 +48,13 @@ func Inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
 				case *ast.Ident:
 					switch o := pkg.TypesInfo.ObjectOf(x).(type) {
 					case *types.PkgName:
-						if err := v.PackageFunctionCall(p, node, x, o, fun); err != nil {
+						if err := v.PackageFunctionCall(PackageFunctionCall{
+							Position:      p,
+							Call:          node,
+							TargetPkg:     x,
+							TargetPkgName: o,
+							TargetFun:     fun,
+						}); err != nil {
 							lastErr = err
 							return false
 						}
