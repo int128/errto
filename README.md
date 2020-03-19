@@ -18,7 +18,7 @@ Install the latest release.
 go get github.com/int128/errto
 ```
 
-You can rewrite the packages in the current working directory.
+To rewrite the packages in the current working directory:
 
 ```sh
 # rewrite with Go 1.13+ errors
@@ -86,7 +86,13 @@ It will rewrite [`main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as fol
  }
 ```
 
-It is recommended to commit files into a Git repository before running errto command.
+You can see changes without actually writing files by `--dry-run` flag.
+
+```sh
+errto go-errors --dry-run ./...
+```
+
+It is recommended to commit files into a Git repository before running the command.
 
 
 ## Usage
@@ -107,22 +113,66 @@ Available Commands:
 
 The following syntax is supported.
 
-| go-errors | xerrors | pkg-errors |
-|-----------|---------|------------|
-| `errors.New("MESSAGE")` | `New("MESSAGE")` | `New("MESSAGE")` |
-| `fmt.Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` |
-| `fmt.Errorf("FORMAT: %w", ..., err)` | `Errorf("FORMAT: %w", ..., err)` | `Wrapf(err, "FORMAT", ...)` |
-| `errors.Unwrap(err)` | `Unwrap(err)` | `Cause(err)` <sup>2</sup> |
-| `errors.As(err, v)` | `As(err, v)` | - |
-| `errors.Is(err, v)` | `Is(err, v)` | - |
-| `fmt.Errorf("%s: %w", "MESSAGE", err)` | `Errorf("%s: %w", "MESSAGE", err)` | `Wrap(err, "MESSAGE")` <sup>1</sup> |
-| `fmt.Errorf("%w", err)` | `Errorf("%w", err)` | `WithStack(err)` <sup>1</sup> |
-| `fmt.Errorf("%s: %s", "MESSAGE", err)` | `Errorf("%s: %s", "MESSAGE", err)` | `WithMessage(err, "MESSAGE")` <sup>1</sup> |
-| `fmt.Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` <sup>1</sup> |
+```go
+import (
+	"errors"
+	"fmt"
+	"golang.org/x/xerrors"
+	pkgerrors "github.com/pkg/errors"
+)
 
-<sup>1</sup> Only rewriting from pkg-errors to go-errors or xerrors is supported. Opposite is not supported.
+// create an error
+errors.New("MESSAGE")
+xerrors.New("MESSAGE")
+pkgerrors.New("MESSAGE")
 
-<sup>2</sup> Compatible with Go errors since v0.9.0. See [the release note](https://github.com/pkg/errors/releases/tag/v0.9.0) for details.
+// format an error
+fmt.Errorf("FORMAT", ARGS...)
+xerrors.Errorf("FORMAT", ARGS...)
+pkgerrors.Errorf("FORMAT", ARGS...)
+
+// wrap an error 
+fmt.Errorf("FORMAT: %w", ARGS..., err)
+xerrors.Errorf("FORMAT: %w", ARGS..., err)
+pkgerrors.Wrapf(err, "FORMAT", ARGS...)
+
+// unwrap an error
+errors.Unwrap(err)
+xerrors.Unwrap(err)
+pkgerrors.Cause(err)  // compatible with Go errors since github.com/pkg/errors@v0.9.0
+
+// cast an error
+errors.As(err, v)
+xerrors.As(err, v)
+
+// test an error
+errors.Is(err, v)
+xerrors.Is(err, v)
+```
+
+Note that the following syntax is supported only if rewriting from pkg-errors to go-errors or xerrors.
+
+```go
+// wrap an error
+pkgerrors.Wrap(err, "MESSAGE")
+fmt.Errorf("%s: %w", "MESSAGE", err)
+xerrors.Errorf("%s: %w", "MESSAGE", err)
+
+// wrap an error with the stack trace
+pkgerrors.WithStack(err)
+fmt.Errorf("%w", err)
+xerrors.Errorf("%w", err)
+
+// wrap an error with a message
+pkgerrors.WithMessage(err, "MESSAGE")
+fmt.Errorf("%s: %s", "MESSAGE", err)
+xerrors.Errorf("%s: %s", "MESSAGE", err)
+
+// wrap an error with a message
+pkgerrors.WithMessagef(err, "FORMAT", ...)
+fmt.Errorf("FORMAT: %s", ..., err)
+xerrors.Errorf("FORMAT: %s", ..., err)
+```
 
 
 ## Contributions
