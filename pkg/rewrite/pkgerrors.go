@@ -146,7 +146,7 @@ func replaceErrorfWithPkgErrors(call astio.PackageFunctionCall) error {
 	newArgs = append(newArgs, args[len(args)-1])
 	newArgs = append(newArgs, args[0])
 	if len(args) > 2 {
-		newArgs = append(newArgs, args[1:len(args)-2]...)
+		newArgs = append(newArgs, args[1:len(args)-1]...)
 	}
 	call.SetArgs(newArgs)
 
