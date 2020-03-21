@@ -1,4 +1,4 @@
-# errto/testdata
+# testdata
 
 This directory contains the test fixtures.
 

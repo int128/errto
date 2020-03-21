@@ -31,24 +31,24 @@ errto xerrors ./...
 errto pkg-errors ./...
 ```
 
-For example, to rewrite package `pkg/rewrite/testdata/basic/pkgerrors` in this repository:
+For example, to rewrite package `acceptance_test/testdata/basic/pkgerrors` in this repository:
 
 ```console
-% errto xerrors ./pkg/rewrite/testdata/basic/pkgerrors
-pkg/rewrite/testdata/basic/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:21:10: errors.New() -> xerrors.New()
-pkg/rewrite/testdata/basic/pkgerrors/main.go:35:33: errors.Cause() -> xerrors.Unwrap()
-pkg/rewrite/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
-pkg/rewrite/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
---- writing 6 change(s) to pkg/rewrite/testdata/basic/pkgerrors/main.go
+% errto xerrors ./acceptance_test/testdata/basic/pkgerrors
+acceptance_test/testdata/basic/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
+acceptance_test/testdata/basic/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
+acceptance_test/testdata/basic/pkgerrors/main.go:21:10: errors.New() -> xerrors.New()
+acceptance_test/testdata/basic/pkgerrors/main.go:35:33: errors.Cause() -> xerrors.Unwrap()
+acceptance_test/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
+acceptance_test/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
+--- writing 6 change(s) to acceptance_test/testdata/basic/pkgerrors/main.go
 ```
 
-It will rewrite [`main.go`](pkg/rewrite/testdata/basic/pkgerrors/main.go) as follows:
+It will rewrite [`main.go`](acceptance_test/testdata/basic/pkgerrors/main.go) as follows:
 
 ```patch
---- a/pkg/rewrite/testdata/basic/pkgerrors/main.go
-+++ b/pkg/rewrite/testdata/basic/pkgerrors/main.go
+--- a/acceptance_test/testdata/basic/pkgerrors/main.go
++++ b/acceptance_test/testdata/basic/pkgerrors/main.go
 @@ -1,7 +1,7 @@
  package main
 

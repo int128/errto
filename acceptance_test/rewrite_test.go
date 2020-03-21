@@ -1,4 +1,4 @@
-package rewrite_test
+package acceptance_test
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/int128/errto/pkg/rewrite"
 )
 
-func TestDo(t *testing.T) {
+func TestRewrite(t *testing.T) {
 	log.Printf = t.Logf
 	ctx := context.TODO()
 
