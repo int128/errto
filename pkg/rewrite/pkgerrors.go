@@ -116,30 +116,62 @@ func replaceErrorfWithPkgErrors(call astio.PackageFunctionCall) error {
 		replacePackageFunctionCall(call, "errors", "Errorf")
 		return nil
 	}
-	b, ok := args[0].(*ast.BasicLit)
-	if !ok {
-		return fmt.Errorf("%s: 1st argument of Errorf must be a literal but %T", call.Position, args[0])
-	}
-	if b.Kind != token.STRING {
-		return fmt.Errorf("%s: 1st argument of Errorf must be a string but %s", call.Position, b.Kind)
-	}
-	if !strings.HasSuffix(b.Value, `: %w"`) {
+
+	// if the last argument is not an error, just rewrite the function call
+	lastArgType := call.TypesInfo.TypeOf(args[len(args)-1])
+	if lastArgType == nil || lastArgType.String() != "error" {
 		replacePackageFunctionCall(call, "errors", "Errorf")
 		return nil
 	}
 
-	// trim the suffix `: %w`
-	b.Value = strings.TrimSuffix(b.Value, `: %w"`) + `"`
-
-	// reorder the args
-	var newArgs []ast.Expr
-	newArgs = append(newArgs, args[len(args)-1])
-	newArgs = append(newArgs, args[0])
-	if len(args) > 2 {
-		newArgs = append(newArgs, args[1:len(args)-1]...)
+	// rewrite to pkg/errors specific functions if the format argument matched
+	firstArg, ok := args[0].(*ast.BasicLit)
+	if !ok {
+		return fmt.Errorf("%s: 1st argument of Errorf must be a literal but %T", call.Position, args[0])
 	}
-	call.SetArgs(newArgs)
+	if firstArg.Kind != token.STRING {
+		return fmt.Errorf("%s: 1st argument of Errorf must be a string but %s", call.Position, firstArg.Kind)
+	}
+	if firstArg.Value == `"%s: %w"` {
+		call.SetArgs([]ast.Expr{args[2], args[1]})
+		replacePackageFunctionCall(call, "errors", "Wrap")
+		return nil
+	}
+	if firstArg.Value == `"%w"` {
+		call.SetArgs([]ast.Expr{args[1]})
+		replacePackageFunctionCall(call, "errors", "WithStack")
+		return nil
+	}
+	if firstArg.Value == `"%s: %s"` {
+		call.SetArgs([]ast.Expr{args[2], args[1]})
+		replacePackageFunctionCall(call, "errors", "WithMessage")
+		return nil
+	}
+	if strings.HasSuffix(firstArg.Value, `: %s"`) {
+		firstArg.Value = strings.TrimSuffix(firstArg.Value, `: %s"`) + `"`
+		var newArgs []ast.Expr
+		newArgs = append(newArgs, args[len(args)-1])
+		newArgs = append(newArgs, args[0])
+		if len(args) > 2 {
+			newArgs = append(newArgs, args[1:len(args)-1]...)
+		}
+		call.SetArgs(newArgs)
+		replacePackageFunctionCall(call, "errors", "WithMessagef")
+		return nil
+	}
+	if strings.HasSuffix(firstArg.Value, `: %w"`) {
+		firstArg.Value = strings.TrimSuffix(firstArg.Value, `: %w"`) + `"`
+		var newArgs []ast.Expr
+		newArgs = append(newArgs, args[len(args)-1])
+		newArgs = append(newArgs, args[0])
+		if len(args) > 2 {
+			newArgs = append(newArgs, args[1:len(args)-1]...)
+		}
+		call.SetArgs(newArgs)
+		replacePackageFunctionCall(call, "errors", "Wrapf")
+		return nil
+	}
 
-	replacePackageFunctionCall(call, "errors", "Wrapf")
+	replacePackageFunctionCall(call, "errors", "Errorf")
 	return nil
 }
