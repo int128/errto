@@ -31,7 +31,9 @@ errto xerrors ./...
 errto pkg-errors ./...
 ```
 
-For example, to rewrite package `acceptance_test/testdata/pkgerrors` in this repository:
+### Example: rewrite with golang.org/x/xerrors
+
+To rewrite package [`./acceptance_test/testdata/pkgerrors`](acceptance_test/testdata/pkgerrors/main.go) with golang.org/x/xerrors:
 
 ```console
 % errto xerrors ./acceptance_test/testdata/pkgerrors
@@ -43,11 +45,9 @@ acceptance_test/testdata/pkgerrors/main.go: - import github.com/pkg/errors
 --- writing 5 change(s) to acceptance_test/testdata/pkgerrors/main.go
 ```
 
-It will rewrite [`main.go`](acceptance_test/testdata/pkgerrors/main.go) as follows:
+You can see the following diff:
 
 ```patch
---- a/acceptance_test/testdata/pkgerrors/main.go
-+++ b/acceptance_test/testdata/pkgerrors/main.go
 @@ -1,7 +1,7 @@
  package main
 
@@ -77,7 +77,7 @@ It will rewrite [`main.go`](acceptance_test/testdata/pkgerrors/main.go) as follo
  }
 ```
 
-You can see changes without actually writing files by `--dry-run` flag.
+You can check changes without actually writing files by `--dry-run` flag.
 
 ```sh
 errto go-errors --dry-run ./...
