@@ -31,24 +31,23 @@ errto xerrors ./...
 errto pkg-errors ./...
 ```
 
-For example, to rewrite package `acceptance_test/testdata/basic/pkgerrors` in this repository:
+For example, to rewrite package `acceptance_test/testdata/pkgerrors` in this repository:
 
 ```console
-% errto xerrors ./acceptance_test/testdata/basic/pkgerrors
-acceptance_test/testdata/basic/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
-acceptance_test/testdata/basic/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
-acceptance_test/testdata/basic/pkgerrors/main.go:21:10: errors.New() -> xerrors.New()
-acceptance_test/testdata/basic/pkgerrors/main.go:35:33: errors.Cause() -> xerrors.Unwrap()
-acceptance_test/testdata/basic/pkgerrors/main.go: + import golang.org/x/xerrors
-acceptance_test/testdata/basic/pkgerrors/main.go: - import github.com/pkg/errors
---- writing 6 change(s) to acceptance_test/testdata/basic/pkgerrors/main.go
+% errto xerrors ./acceptance_test/testdata/pkgerrors
+acceptance_test/testdata/pkgerrors/main.go:14:10: errors.Wrapf() -> xerrors.Errorf()
+acceptance_test/testdata/pkgerrors/main.go:18:10: errors.Errorf() -> xerrors.Errorf()
+acceptance_test/testdata/pkgerrors/main.go:21:10: errors.New() -> xerrors.New()
+acceptance_test/testdata/pkgerrors/main.go: + import golang.org/x/xerrors
+acceptance_test/testdata/pkgerrors/main.go: - import github.com/pkg/errors
+--- writing 5 change(s) to acceptance_test/testdata/pkgerrors/main.go
 ```
 
-It will rewrite [`main.go`](acceptance_test/testdata/basic/pkgerrors/main.go) as follows:
+It will rewrite [`main.go`](acceptance_test/testdata/pkgerrors/main.go) as follows:
 
 ```patch
---- a/acceptance_test/testdata/basic/pkgerrors/main.go
-+++ b/acceptance_test/testdata/basic/pkgerrors/main.go
+--- a/acceptance_test/testdata/pkgerrors/main.go
++++ b/acceptance_test/testdata/pkgerrors/main.go
 @@ -1,7 +1,7 @@
  package main
 
@@ -75,14 +74,6 @@ It will rewrite [`main.go`](acceptance_test/testdata/basic/pkgerrors/main.go) as
 +               return xerrors.New("number is zero")
         }
         return nil
- }
-@@ -32,6 +32,6 @@ func main() {
-        err := check(os.Args[1])
-        log.Printf("err=%+v", err)
-        if err != nil {
--               log.Printf("Unwrap(err)=%+v", errors.Cause(err))
-+               log.Printf("Unwrap(err)=%+v", xerrors.Unwrap(err))
-        }
  }
 ```
 
