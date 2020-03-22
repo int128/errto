@@ -109,7 +109,7 @@ The following syntax is supported.
 | `New("MESSAGE")` | `New("MESSAGE")` | `New("MESSAGE")` |
 | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` | `Errorf("FORMAT", ...)` |
 | `Errorf("FORMAT: %w", ..., err)` | `Errorf("FORMAT: %w", ..., err)` | `Wrapf(err, "FORMAT", ...)` |
-| `Unwrap(err)` | `Unwrap(err)` | `Unwrap(err)` <sup>1</sup> |
+| `Unwrap(err)` | `Unwrap(err)` | `Unwrap(err)` <sup>1</sup> <br> `Cause(err)` <sup>2</sup> |
 | `As(err, v)` | `As(err, v)` | `As(err, v)` <sup>1</sup> |
 | `Is(err, v)` | `Is(err, v)` | `Is(err, v)` <sup>1</sup> |
 | `Errorf("%s: %w", "MSG", err)` | `Errorf("%s: %w", "MSG", err)` | `Wrap(err, "MSG")` |
@@ -118,6 +118,8 @@ The following syntax is supported.
 | `Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` |
 
 <sup>1</sup> Available in `github.com/pkg/errors@v0.9.0` or later. See [the release note](https://github.com/pkg/errors/releases/tag/v0.9.0) for details.
+
+<sup>2</sup> `Cause` is replaced with `Unwrap`. Note that it may be incompatible.
 
 
 ## Contributions
