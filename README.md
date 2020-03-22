@@ -121,14 +121,12 @@ The following syntax is supported.
 | `Unwrap(err)` | `Unwrap(err)` | `Unwrap(err)` <sup>1</sup> |
 | `As(err, v)` | `As(err, v)` | `As(err, v)` <sup>1</sup> |
 | `Is(err, v)` | `Is(err, v)` | `Is(err, v)` <sup>1</sup> |
-| `Errorf("%s: %w", "MSG", err)` | `Errorf("%s: %w", "MSG", err)` | `Wrap(err, "MSG")` <sup>2</sup> |
-| `Errorf("%w", err)` | `Errorf("%w", err)` | `WithStack(err)` <sup>2</sup> |
-| `Errorf("%s: %s", "MSG", err)` | `Errorf("%s: %s", "MSG", err)` | `WithMessage(err, "MSG")` <sup>2</sup> |
-| `Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` <sup>2</sup> |
+| `Errorf("%s: %w", "MSG", err)` | `Errorf("%s: %w", "MSG", err)` | `Wrap(err, "MSG")` |
+| `Errorf("%w", err)` | `Errorf("%w", err)` | `WithStack(err)` |
+| `Errorf("%s: %s", "MSG", err)` | `Errorf("%s: %s", "MSG", err)` | `WithMessage(err, "MSG")` |
+| `Errorf("FORMAT: %s", ..., err)` | `Errorf("FORMAT: %s", ..., err)` | `WithMessagef(err, "FORMAT", ...)` |
 
 <sup>1</sup> Available in `github.com/pkg/errors@v0.9.0` or later. See [the release note](https://github.com/pkg/errors/releases/tag/v0.9.0) for details.
-
-<sup>2</sup> Supported only if rewriting from pkg-errors to go-errors or xerrors.
 
 
 ## Contributions

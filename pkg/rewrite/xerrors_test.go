@@ -20,9 +20,4 @@ func TestToXerrors_Transform(t *testing.T) {
 			"testdata/pkgerrors/common.go",
 			"testdata/xerrors/common.go")
 	})
-	t.Run("special syntax from pkg-errors", func(t *testing.T) {
-		transform(t, &tr,
-			"testdata/pkgerrors/from_pkgerrors.go",
-			"testdata/xerrors/from_pkgerrors.go")
-	})
 }

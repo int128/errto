@@ -18,6 +18,7 @@ type PackageFunctionCall struct {
 	TargetPkg     *ast.Ident
 	TargetPkgName *types.PkgName
 	TargetFun     *ast.SelectorExpr
+	TypesInfo     *types.Info
 }
 
 func (call *PackageFunctionCall) PackagePath() string {
@@ -54,6 +55,7 @@ func Inspect(pkg *packages.Package, file *ast.File, v Visitor) error {
 							TargetPkg:     x,
 							TargetPkgName: o,
 							TargetFun:     fun,
+							TypesInfo:     pkg.TypesInfo,
 						}); err != nil {
 							lastErr = err
 							return false
