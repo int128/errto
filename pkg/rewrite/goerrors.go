@@ -99,7 +99,7 @@ func (v *toGoErrorsVisitor) pkgErrorsFunctionCall(call astio.PackageFunctionCall
 		v.needImportFmt++
 		return nil
 
-	case "New":
+	case "New", "Unwrap", "As", "Is":
 		replacePackageFunctionCall(call, "errors", "")
 		v.needImportErrors++
 		return nil
