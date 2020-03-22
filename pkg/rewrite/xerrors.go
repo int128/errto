@@ -117,7 +117,7 @@ func (v *toXerrorsVisitor) pkgErrorsFunctionCall(call astio.PackageFunctionCall)
 		v.needImport++
 		return nil
 
-	case "Errorf", "New":
+	case "Errorf", "New", "Unwrap", "As", "Is":
 		replacePackageFunctionCall(call, "xerrors", "")
 		v.needImport++
 		return nil
