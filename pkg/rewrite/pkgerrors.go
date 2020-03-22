@@ -68,13 +68,8 @@ func (v *toPkgErrorsVisitor) PackageFunctionCall(call astio.PackageFunctionCall)
 
 func (v *toPkgErrorsVisitor) goErrorsFunctionCall(call astio.PackageFunctionCall) error {
 	switch call.FunctionName() {
-	case "New":
+	case "New", "Unwrap", "As", "Is":
 		replacePackageFunctionCall(call, "errors", "")
-		v.needImport++
-		return nil
-
-	case "Unwrap":
-		replacePackageFunctionCall(call, "errors", "Cause")
 		v.needImport++
 		return nil
 	}
@@ -96,19 +91,14 @@ func (v *toPkgErrorsVisitor) goFmtFunctionCall(call astio.PackageFunctionCall) e
 
 func (v *toPkgErrorsVisitor) xerrorsFunctionCall(call astio.PackageFunctionCall) error {
 	switch call.FunctionName() {
-	case "New":
-		replacePackageFunctionCall(call, "errors", "New")
+	case "New", "Unwrap", "As", "Is":
+		replacePackageFunctionCall(call, "errors", "")
 		v.needImport++
 		return nil
 
 	case "Errorf":
 		v.needImport++
 		return replaceErrorfWithPkgErrors(call)
-
-	case "Unwrap":
-		replacePackageFunctionCall(call, "errors", "Cause")
-		v.needImport++
-		return nil
 	}
 
 	log.Printf("%s: NOTE: you need to manually rewrite %s.%s()", call.Position, call.TargetPkg.Name, call.FunctionName())

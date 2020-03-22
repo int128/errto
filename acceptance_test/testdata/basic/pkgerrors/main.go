@@ -32,6 +32,6 @@ func main() {
 	err := check(os.Args[1])
 	log.Printf("err=%+v", err)
 	if err != nil {
-		log.Printf("Unwrap(err)=%+v", errors.Cause(err))
+		log.Printf("Unwrap(err)=%+v", errors.Unwrap(err))
 	}
 }
