@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+type SomeError struct{}
+
+func (err SomeError) Error() string {
+	return "hello"
+}
+
 func commonSyntax(x int, y string, err error) {
 	// create an error
 	errors.New("MESSAGE")
@@ -21,4 +27,11 @@ func commonSyntax(x int, y string, err error) {
 
 	// unwrap an error
 	errors.Unwrap(err)
+
+	// cast an error
+	var targetErr SomeError
+	errors.As(err, &targetErr)
+
+	// test an error
+	errors.Is(err, &targetErr)
 }
